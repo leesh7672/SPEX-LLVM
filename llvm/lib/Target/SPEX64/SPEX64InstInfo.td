@@ -9,6 +9,7 @@ class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
   let OutOperandList = outs;
   let InOperandList  = ins;
   let AsmString      = asmstr;
+  let Namespace      = "SPEX64";
 
   let Size = 4;
   bits<32> Inst;
@@ -34,6 +35,12 @@ class SPEX64K9Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
   let K9 = k9;
 }
 
+class SPEX64BCCInst<string asmstr, dag outs, dag ins, bits<9> k9val,
+                    bits<1> i64>
+    : SPEX64K9Inst<asmstr, outs, ins, 0x100, 0, 0b00, 1, i64> {
+  let k9 = k9val;
+}
+
 def SPEX64InstrInfo : InstrInfo;
 
 // SYS opcodes (0x000-0x00B)
@@ -50,17 +57,33 @@ def INTDIS  : SPEX64Inst<"intdis",  (outs), (ins), 0x009, 0, 0b00, 0, 0>;
 def WFI     : SPEX64Inst<"wfi",     (outs), (ins), 0x00A, 0, 0b00, 0, 0>;
 def ILL     : SPEX64Inst<"ill",     (outs), (ins), 0x00B, 0, 0b00, 0, 0>;
 
-// bcc (absolute target, K9 condition)
-def BCC32 : SPEX64K9Inst<"bcc\t$k9, $target", (outs),
-                         (ins SPEX64Imm9:$k9, SPEX64Imm32:$target),
-                         0x100, 0, 0b00, 1, 0> {
-  let Size = 8;
+// bcc (absolute target, hyphenated condition)
+multiclass SPEX64_BCC_COND<string cond, bits<9> k9val> {
+  def BCC_#cond#_32 : SPEX64BCCInst<"bcc-"#cond#"\t$target", (outs),
+                                   (ins SPEX64Imm32:$target), k9val, 0> {
+    let Size = 8;
+  }
+  def BCC_#cond#_64 : SPEX64BCCInst<"bcc-"#cond#"\t$target", (outs),
+                                   (ins SPEX64Imm64:$target), k9val, 1> {
+    let Size = 12;
+  }
 }
-def BCC64 : SPEX64K9Inst<"bcc\t$k9, $target", (outs),
-                         (ins SPEX64Imm9:$k9, SPEX64Imm64:$target),
-                         0x100, 0, 0b00, 1, 1> {
-  let Size = 12;
-}
+defm BCC_EQ  : SPEX64_BCC_COND<"eq",  0>;
+defm BCC_NE  : SPEX64_BCC_COND<"ne",  1>;
+defm BCC_LT  : SPEX64_BCC_COND<"lt",  2>;
+defm BCC_GE  : SPEX64_BCC_COND<"ge",  3>;
+defm BCC_LE  : SPEX64_BCC_COND<"le",  4>;
+defm BCC_GT  : SPEX64_BCC_COND<"gt",  5>;
+defm BCC_LTU : SPEX64_BCC_COND<"ltu", 6>;
+defm BCC_GEU : SPEX64_BCC_COND<"geu", 7>;
+defm BCC_LEU : SPEX64_BCC_COND<"leu", 8>;
+defm BCC_GTU : SPEX64_BCC_COND<"gtu", 9>;
+defm BCC_VS  : SPEX64_BCC_COND<"vs",  10>;
+defm BCC_VC  : SPEX64_BCC_COND<"vc",  11>;
+defm BCC_MI  : SPEX64_BCC_COND<"mi",  12>;
+defm BCC_PL  : SPEX64_BCC_COND<"pl",  13>;
+defm BCC_CS  : SPEX64_BCC_COND<"cs",  14>;
+defm BCC_CC  : SPEX64_BCC_COND<"cc",  15>;
 
 // jmp / call / sp
 def JMP_R : SPEX64Inst<"jmp\t$r6", (outs), (ins GPR:$r6), 0x200, 0, 0b00, 0, 0>;
@@ -127,10 +150,10 @@ multiclass SPEX64_MOV_SZ<string def_suf, string asm_suf, bits<2> sz2> {
     let K9 = 3;
   }
 }
-defm MOV : SPEX64_MOV_SZ<"B", ".b", 0b00>;
-defm MOV : SPEX64_MOV_SZ<"H", ".h", 0b01>;
-defm MOV : SPEX64_MOV_SZ<"W", ".w", 0b10>;
-defm MOV : SPEX64_MOV_SZ<"D", ".d", 0b11>;
+defm MOV : SPEX64_MOV_SZ<"8",  "8",  0b00>;
+defm MOV : SPEX64_MOV_SZ<"16", "16", 0b01>;
+defm MOV : SPEX64_MOV_SZ<"32", "32", 0b10>;
+defm MOV : SPEX64_MOV_SZ<"64", "64", 0b11>;
 
 // li*
 multiclass SPEX64_LI_SZ<string def_suf, string asm_suf, bits<2> sz2> {
@@ -145,10 +168,10 @@ multiclass SPEX64_LI_SZ<string def_suf, string asm_suf, bits<2> sz2> {
     let Size = 12;
   }
 }
-defm LI : SPEX64_LI_SZ<"B", ".b", 0b00>;
-defm LI : SPEX64_LI_SZ<"H", ".h", 0b01>;
-defm LI : SPEX64_LI_SZ<"W", ".w", 0b10>;
-defm LI : SPEX64_LI_SZ<"D", ".d", 0b11>;
+defm LI : SPEX64_LI_SZ<"8",  "8",  0b00>;
+defm LI : SPEX64_LI_SZ<"16", "16", 0b01>;
+defm LI : SPEX64_LI_SZ<"32", "32", 0b10>;
+defm LI : SPEX64_LI_SZ<"64", "64", 0b11>;
 
 // Binary ALU (reg + imm32 + imm64)
 multiclass SPEX64_ALU_SZ<bits<12> opc, string mn, string def_suf,
@@ -168,10 +191,10 @@ multiclass SPEX64_ALU_SZ<bits<12> opc, string mn, string def_suf,
   }
 }
 multiclass SPEX64_ALU<bits<12> opc, string mn> {
-  defm NAME : SPEX64_ALU_SZ<opc, mn, "B", ".b", 0b00>;
-  defm NAME : SPEX64_ALU_SZ<opc, mn, "H", ".h", 0b01>;
-  defm NAME : SPEX64_ALU_SZ<opc, mn, "W", ".w", 0b10>;
-  defm NAME : SPEX64_ALU_SZ<opc, mn, "D", ".d", 0b11>;
+  defm NAME : SPEX64_ALU_SZ<opc, mn, "8",  "8",  0b00>;
+  defm NAME : SPEX64_ALU_SZ<opc, mn, "16", "16", 0b01>;
+  defm NAME : SPEX64_ALU_SZ<opc, mn, "32", "32", 0b10>;
+  defm NAME : SPEX64_ALU_SZ<opc, mn, "64", "64", 0b11>;
 }
 defm ADD  : SPEX64_ALU<0x400, "add">;
 defm SUB  : SPEX64_ALU<0x401, "sub">;
@@ -188,10 +211,10 @@ multiclass SPEX64_UNARY_SZ<bits<12> opc, string mn, string def_suf,
                                opc, 0, sz2, 0, 0>;
 }
 multiclass SPEX64_UNARY<bits<12> opc, string mn> {
-  defm NAME : SPEX64_UNARY_SZ<opc, mn, "B", ".b", 0b00>;
-  defm NAME : SPEX64_UNARY_SZ<opc, mn, "H", ".h", 0b01>;
-  defm NAME : SPEX64_UNARY_SZ<opc, mn, "W", ".w", 0b10>;
-  defm NAME : SPEX64_UNARY_SZ<opc, mn, "D", ".d", 0b11>;
+  defm NAME : SPEX64_UNARY_SZ<opc, mn, "8",  "8",  0b00>;
+  defm NAME : SPEX64_UNARY_SZ<opc, mn, "16", "16", 0b01>;
+  defm NAME : SPEX64_UNARY_SZ<opc, mn, "32", "32", 0b10>;
+  defm NAME : SPEX64_UNARY_SZ<opc, mn, "64", "64", 0b11>;
 }
 defm NOT : SPEX64_UNARY<0x410, "not">;
 defm NEG : SPEX64_UNARY<0x411, "neg">;
@@ -208,10 +231,10 @@ multiclass SPEX64_SHIFT_SZ<bits<12> opc, string mn, string def_suf,
   }
 }
 multiclass SPEX64_SHIFT<bits<12> opc, string mn> {
-  defm NAME : SPEX64_SHIFT_SZ<opc, mn, "B", ".b", 0b00>;
-  defm NAME : SPEX64_SHIFT_SZ<opc, mn, "H", ".h", 0b01>;
-  defm NAME : SPEX64_SHIFT_SZ<opc, mn, "W", ".w", 0b10>;
-  defm NAME : SPEX64_SHIFT_SZ<opc, mn, "D", ".d", 0b11>;
+  defm NAME : SPEX64_SHIFT_SZ<opc, mn, "8",  "8",  0b00>;
+  defm NAME : SPEX64_SHIFT_SZ<opc, mn, "16", "16", 0b01>;
+  defm NAME : SPEX64_SHIFT_SZ<opc, mn, "32", "32", 0b10>;
+  defm NAME : SPEX64_SHIFT_SZ<opc, mn, "64", "64", 0b11>;
 }
 defm SHL  : SPEX64_SHIFT<0x600, "shl">;
 defm SHR  : SPEX64_SHIFT<0x601, "shr">;
@@ -253,16 +276,16 @@ multiclass SPEX64_LS_R6<bits<12> opc, string mn, string def_suf, string asm_suf,
   }
 }
 multiclass SPEX64_LS_NO_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
-  defm NAME : SPEX64_LS_NO_R6<opc, mn, "B", ".b", 0b00, x1>;
-  defm NAME : SPEX64_LS_NO_R6<opc, mn, "H", ".h", 0b01, x1>;
-  defm NAME : SPEX64_LS_NO_R6<opc, mn, "W", ".w", 0b10, x1>;
-  defm NAME : SPEX64_LS_NO_R6<opc, mn, "D", ".d", 0b11, x1>;
+  defm NAME : SPEX64_LS_NO_R6<opc, mn, "8",  "8",  0b00, x1>;
+  defm NAME : SPEX64_LS_NO_R6<opc, mn, "16", "16", 0b01, x1>;
+  defm NAME : SPEX64_LS_NO_R6<opc, mn, "32", "32", 0b10, x1>;
+  defm NAME : SPEX64_LS_NO_R6<opc, mn, "64", "64", 0b11, x1>;
 }
 multiclass SPEX64_LS_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
-  defm NAME : SPEX64_LS_R6<opc, mn, "B", ".b", 0b00, x1>;
-  defm NAME : SPEX64_LS_R6<opc, mn, "H", ".h", 0b01, x1>;
-  defm NAME : SPEX64_LS_R6<opc, mn, "W", ".w", 0b10, x1>;
-  defm NAME : SPEX64_LS_R6<opc, mn, "D", ".d", 0b11, x1>;
+  defm NAME : SPEX64_LS_R6<opc, mn, "8",  "8",  0b00, x1>;
+  defm NAME : SPEX64_LS_R6<opc, mn, "16", "16", 0b01, x1>;
+  defm NAME : SPEX64_LS_R6<opc, mn, "32", "32", 0b10, x1>;
+  defm NAME : SPEX64_LS_R6<opc, mn, "64", "64", 0b11, x1>;
 }
 
 defm LDZ : SPEX64_LS_NO_R6_SZS<0x700, "ldz", 0>;

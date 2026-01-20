@@ -1,6 +1,8 @@
 include "llvm/Target/Target.td"
 
-class SPEX64Reg<string n> : Register<n>;
+class SPEX64Reg<string n> : Register<n> {
+  let Namespace = "SPEX64";
+}
 
 def R0  : SPEX64Reg<"r0">;
 def R1  : SPEX64Reg<"r1">;

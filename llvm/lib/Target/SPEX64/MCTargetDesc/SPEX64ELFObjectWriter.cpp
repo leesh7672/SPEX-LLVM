@@ -4,8 +4,7 @@
 #include "llvm/MC/MCObjectWriter.h"
 #include "llvm/MC/MCValue.h"
 
-using namespace llvm;
-
+namespace llvm {
 namespace {
 class SPEX64ELFObjectWriter : public MCELFObjectTargetWriter {
 public:
@@ -17,10 +16,15 @@ public:
 protected:
   unsigned getRelocType(const MCFixup &, const MCValue &,
                         bool) const override {
-    return ELF::R_NONE;
+    return 0;
   }
 };
 } // namespace
+
+std::unique_ptr<MCObjectTargetWriter>
+createSPEX64ELFObjectTargetWriter(uint8_t OSABI) {
+  return std::make_unique<SPEX64ELFObjectWriter>(OSABI);
+}
 
 std::unique_ptr<MCObjectWriter>
 createSPEX64ELFObjectWriter(raw_pwrite_stream &OS, uint8_t OSABI) {
@@ -28,3 +32,4 @@ createSPEX64ELFObjectWriter(raw_pwrite_stream &OS, uint8_t OSABI) {
   return std::make_unique<ELFObjectWriter>(std::move(MOTW), OS,
                                            /*IsLittleEndian=*/true);
 }
+} // namespace llvm

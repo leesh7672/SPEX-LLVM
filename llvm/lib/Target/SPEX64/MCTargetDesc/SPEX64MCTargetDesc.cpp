@@ -11,6 +11,11 @@
 
 using namespace llvm;
 
+namespace llvm {
+MCAsmInfo *createSPEX64MCAsmInfo(const MCRegisterInfo &, const Triple &,
+                                 const MCTargetOptions &);
+} // namespace llvm
+
 #define GET_INSTRINFO_MC_DESC
 #include "SPEX64GenInstrInfo.inc"
 
@@ -34,21 +39,11 @@ MCRegisterInfo *createSPEX64MCRegisterInfo(const Triple &TT) {
 
 MCSubtargetInfo *createSPEX64MCSubtargetInfo(const Triple &TT, StringRef CPU,
                                              StringRef FS) {
-  return createSPEX64MCSubtargetInfoImpl(TT, CPU, FS);
+  return createSPEX64MCSubtargetInfoImpl(TT, CPU, CPU, FS);
 }
 
-MCAsmInfo *createSPEX64MCAsmInfo(const MCRegisterInfo &, const Triple &,
-                                 const MCTargetOptions &);
-MCCodeEmitter *createSPEX64MCCodeEmitter(const MCInstrInfo &MCII,
-                                         MCContext &Ctx);
-MCAsmBackend *createSPEX64AsmBackend(const Target &T, const MCSubtargetInfo &STI,
-                                     const MCRegisterInfo &MRI,
-                                     const MCTargetOptions &Options);
-std::unique_ptr<MCObjectWriter> createSPEX64ELFObjectWriter(raw_pwrite_stream &OS,
-                                                           uint8_t OSABI);
-
 extern "C" void LLVMInitializeSPEX64TargetMC() {
-  const Target &T = getTheSPEX64Target();
+  Target &T = getTheSPEX64Target();
 
   RegisterMCAsmInfoFn X(T, createSPEX64MCAsmInfo);
 
@@ -59,8 +54,4 @@ extern "C" void LLVMInitializeSPEX64TargetMC() {
   TargetRegistry::RegisterMCCodeEmitter(T, createSPEX64MCCodeEmitter);
   TargetRegistry::RegisterMCAsmBackend(T, createSPEX64AsmBackend);
 
-  TargetRegistry::RegisterMCObjectWriter(
-      T, [](const Triple &, uint8_t OSABI, raw_pwrite_stream &OS) {
-        return createSPEX64ELFObjectWriter(OS, OSABI);
-      });
 }

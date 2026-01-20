@@ -1,5 +1,7 @@
+#include "SPEX64MCTargetDesc.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCFixup.h"
+#include "llvm/MC/MCELFObjectWriter.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -7,16 +9,20 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace llvm;
-
+namespace llvm {
 namespace {
 class SPEX64AsmBackend : public MCAsmBackend {
+  Triple::OSType OSType;
+
 public:
-  SPEX64AsmBackend() : MCAsmBackend(endianness::little) {}
+  explicit SPEX64AsmBackend(const MCSubtargetInfo &STI)
+      : MCAsmBackend(endianness::little),
+        OSType(STI.getTargetTriple().getOS()) {}
 
   std::unique_ptr<MCObjectTargetWriter>
   createObjectTargetWriter() const override {
-    llvm_unreachable("Use createSPEX64ELFObjectWriter()");
+    uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(OSType);
+    return createSPEX64ELFObjectTargetWriter(OSABI);
   }
 
   void applyFixup(const MCFragment &Fragment, const MCFixup &Fixup,
@@ -44,8 +50,9 @@ public:
 };
 } // namespace
 
-MCAsmBackend *createSPEX64AsmBackend(const Target &, const MCSubtargetInfo &,
+MCAsmBackend *createSPEX64AsmBackend(const Target &, const MCSubtargetInfo &STI,
                                      const MCRegisterInfo &,
                                      const MCTargetOptions &) {
-  return new SPEX64AsmBackend();
+  return new SPEX64AsmBackend(STI);
 }
+} // namespace llvm

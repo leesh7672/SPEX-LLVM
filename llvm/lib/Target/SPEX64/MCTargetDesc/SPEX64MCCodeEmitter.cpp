@@ -6,8 +6,7 @@
 #include "llvm/Support/Endian.h"
 
 #include <cstdint>
-using namespace llvm;
-
+namespace llvm {
 namespace {
 class SPEX64MCCodeEmitter : public MCCodeEmitter {
 public:
@@ -33,3 +32,4 @@ MCCodeEmitter *createSPEX64MCCodeEmitter(const MCInstrInfo &MCII,
   (void)Ctx;
   return new SPEX64MCCodeEmitter(MCII);
 }
+} // namespace llvm

@@ -8,6 +8,7 @@ class MCAsmBackend;
 class MCCodeEmitter;
 class MCContext;
 class MCInstrInfo;
+class MCObjectTargetWriter;
 class MCObjectWriter;
 class MCRegisterInfo;
 class MCSubtargetInfo;
@@ -23,6 +24,8 @@ MCAsmBackend *createSPEX64AsmBackend(const Target &T, const MCSubtargetInfo &STI
                                      const MCTargetOptions &Options);
 std::unique_ptr<MCObjectWriter>
 createSPEX64ELFObjectWriter(raw_pwrite_stream &OS, uint8_t OSABI);
+std::unique_ptr<MCObjectTargetWriter>
+createSPEX64ELFObjectTargetWriter(uint8_t OSABI);
 } // namespace llvm
 
 #define GET_REGINFO_ENUM

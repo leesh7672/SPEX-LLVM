@@ -3,8 +3,7 @@
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/TargetParser/Triple.h"
 
-using namespace llvm;
-
+namespace llvm {
 namespace {
 class SPEX64MCAsmInfo : public MCAsmInfoELF {
 public:
@@ -22,3 +21,4 @@ MCAsmInfo *createSPEX64MCAsmInfo(const MCRegisterInfo &, const Triple &TT,
                                  const MCTargetOptions &Options) {
   return new SPEX64MCAsmInfo(TT, Options);
 }
+} // namespace llvm

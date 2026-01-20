@@ -1,3 +1,4 @@
+#include "SPEX64TargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
 using namespace llvm;
 

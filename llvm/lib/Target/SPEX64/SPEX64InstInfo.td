@@ -19,9 +19,18 @@ def SPEX64Imm64AsmOperand : AsmOperandClass {
   let RenderMethod = "addImmOperands";
 }
 
-def SPEX64Imm9  : Operand<i32> { let ParserMatchClass = SPEX64Imm9AsmOperand; }
-def SPEX64Imm32 : Operand<i32> { let ParserMatchClass = SPEX64Imm32AsmOperand; }
-def SPEX64Imm64 : Operand<i64> { let ParserMatchClass = SPEX64Imm64AsmOperand; }
+def SPEX64Imm9  : Operand<i32> {
+  let ParserMatchClass = SPEX64Imm9AsmOperand;
+  let DecoderMethod = "DecodeSPEX64Imm9";
+}
+def SPEX64Imm32 : Operand<i32> {
+  let ParserMatchClass = SPEX64Imm32AsmOperand;
+  let DecoderMethod = "DecodeSPEX64Imm32";
+}
+def SPEX64Imm64 : Operand<i64> {
+  let ParserMatchClass = SPEX64Imm64AsmOperand;
+  let DecoderMethod = "DecodeSPEX64Imm64";
+}
 
 class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
                  bits<2> sz2, bits<1> i1, bits<1> i64> : Instruction {
@@ -34,6 +43,8 @@ class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
   bits<32> Inst;
   bits<6> r6;
   bits<9> K9;
+  bits<64> imm;
+  bits<64> target;
 
   let Inst{31-20} = opc;
   let Inst{19}    = x1;
@@ -45,6 +56,8 @@ class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
 
   let r6 = 0;
   let K9 = 0;
+  let imm = 0;
+  let target = 0;
 }
 
 class SPEX64K9Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
@@ -80,11 +93,9 @@ def ILL     : SPEX64Inst<"ill",     (outs), (ins), 0x00B, 0, 0b00, 0, 0>;
 multiclass SPEX64_BCC_COND<string cond, bits<9> k9val> {
   def BCC_#cond#_32 : SPEX64BCCInst<"bcc-"#cond#"\t$target", (outs),
                                    (ins SPEX64Imm32:$target), k9val, 0> {
-    let Size = 8;
   }
   def BCC_#cond#_64 : SPEX64BCCInst<"bcc-"#cond#"\t$target", (outs),
                                    (ins SPEX64Imm64:$target), k9val, 1> {
-    let Size = 12;
   }
 }
 defm BCC_EQ  : SPEX64_BCC_COND<"eq",  0>;
@@ -108,33 +119,27 @@ defm BCC_CC  : SPEX64_BCC_COND<"cc",  15>;
 def JMP_R : SPEX64Inst<"jmp\t$r6", (outs), (ins GPR:$r6), 0x200, 0, 0b00, 0, 0>;
 def JMP32 : SPEX64Inst<"jmp\t$target", (outs), (ins SPEX64Imm32:$target),
                        0x200, 0, 0b00, 1, 0> {
-  let Size = 8;
 }
 def JMP64 : SPEX64Inst<"jmp\t$target", (outs), (ins SPEX64Imm64:$target),
                        0x200, 0, 0b00, 1, 1> {
-  let Size = 12;
 }
 
 def CALL_R : SPEX64Inst<"call\t$r6", (outs), (ins GPR:$r6), 0x203, 0, 0b00, 0, 0>;
 def CALL32 : SPEX64Inst<"call\t$target", (outs), (ins SPEX64Imm32:$target),
                         0x203, 0, 0b00, 1, 0> {
-  let Size = 8;
 }
 def CALL64 : SPEX64Inst<"call\t$target", (outs), (ins SPEX64Imm64:$target),
                         0x203, 0, 0b00, 1, 1> {
-  let Size = 12;
 }
 
 def SP_RX : SPEX64Inst<"sp\t$r6", (outs), (ins GPR:$r6), 0x206, 0, 0b00, 0, 0>;
 def SP32 : SPEX64Inst<"sp\t$r6, $target", (outs),
                       (ins GPR:$r6, SPEX64Imm32:$target),
                       0x206, 0, 0b00, 1, 0> {
-  let Size = 8;
 }
 def SP64 : SPEX64Inst<"sp\t$r6, $target", (outs),
                       (ins GPR:$r6, SPEX64Imm64:$target),
                       0x206, 0, 0b00, 1, 1> {
-  let Size = 12;
 }
 
 // mov* (rx <-> r6). Lane-local variants are represented as separate mnemonics.
@@ -195,12 +200,10 @@ multiclass SPEX64_LI_SZ<string def_suf, string asm_suf, bits<2> sz2> {
   def LI#def_suf#"_32" : SPEX64Inst<"li"#asm_suf#"\trx, $imm", (outs),
                                   (ins SPEX64Imm32:$imm),
                                   0x302, 0, sz2, 1, 0> {
-    let Size = 8;
   }
   def LI#def_suf#"_64" : SPEX64Inst<"li"#asm_suf#"\trx, $imm", (outs),
                                   (ins SPEX64Imm64:$imm),
                                   0x302, 0, sz2, 1, 1> {
-    let Size = 12;
   }
 }
 defm LI : SPEX64_LI_SZ<"8",  "8",  0b00>;
@@ -217,12 +220,10 @@ multiclass SPEX64_ALU_SZ<bits<12> opc, string mn, string def_suf,
   def NAME#def_suf#"_I32" : SPEX64Inst<mn#asm_suf#"\t$imm", (outs),
                                       (ins SPEX64Imm32:$imm),
                                       opc, 0, sz2, 1, 0> {
-    let Size = 8;
   }
   def NAME#def_suf#"_I64" : SPEX64Inst<mn#asm_suf#"\t$imm", (outs),
                                       (ins SPEX64Imm64:$imm),
                                       opc, 0, sz2, 1, 1> {
-    let Size = 12;
   }
 }
 multiclass SPEX64_ALU<bits<12> opc, string mn> {
@@ -262,7 +263,6 @@ multiclass SPEX64_SHIFT_SZ<bits<12> opc, string mn, string def_suf,
   def NAME#def_suf : SPEX64Inst<mn#asm_suf#"\t$imm", (outs),
                                 (ins SPEX64Imm32:$imm),
                                 opc, 0, sz2, 1, 0> {
-    let Size = 8;
   }
 }
 multiclass SPEX64_SHIFT<bits<12> opc, string mn> {
@@ -287,12 +287,10 @@ multiclass SPEX64_LS_NO_R6<bits<12> opc, string mn, string def_suf,
   def NAME#def_suf#"_I32" : SPEX64Inst<mn#asm_suf#"\t[rx + $imm]", (outs),
                                       (ins SPEX64Imm32:$imm),
                                       opc, x1, sz2, 1, 0> {
-    let Size = 8;
   }
   def NAME#def_suf#"_I64" : SPEX64Inst<mn#asm_suf#"\t[rx + $imm]", (outs),
                                       (ins SPEX64Imm64:$imm),
                                       opc, x1, sz2, 1, 1> {
-    let Size = 12;
   }
 }
 multiclass SPEX64_LS_R6<bits<12> opc, string mn, string def_suf, string asm_suf,
@@ -302,12 +300,10 @@ multiclass SPEX64_LS_R6<bits<12> opc, string mn, string def_suf, string asm_suf,
   def NAME#def_suf#"_I32" : SPEX64Inst<mn#asm_suf#"\t$r6, [rx + $imm]", (outs),
                                       (ins GPR:$r6, SPEX64Imm32:$imm),
                                       opc, x1, sz2, 1, 0> {
-    let Size = 8;
   }
   def NAME#def_suf#"_I64" : SPEX64Inst<mn#asm_suf#"\t$r6, [rx + $imm]", (outs),
                                       (ins GPR:$r6, SPEX64Imm64:$imm),
                                       opc, x1, sz2, 1, 1> {
-    let Size = 12;
   }
 }
 multiclass SPEX64_LS_NO_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
@@ -336,11 +332,9 @@ def CAS64 : SPEX64Inst<"cas64\t$r6", (outs), (ins GPR:$r6), 0x800, 0, 0b11, 0, 0
 // CSR / MMU / IPI
 def CSRR : SPEX64Inst<"csrr\t$imm", (outs), (ins SPEX64Imm32:$imm),
                       0x900, 0, 0b00, 1, 0> {
-  let Size = 8;
 }
 def CSRW : SPEX64Inst<"csrw\t$imm", (outs), (ins SPEX64Imm32:$imm),
                       0x902, 0, 0b00, 1, 0> {
-  let Size = 8;
 }
 def TLBFLUSH : SPEX64Inst<"tlbflush", (outs), (ins), 0x910, 0, 0b00, 0, 0>;
 def TLBFLUSHASID : SPEX64Inst<"tlbflushasid\t$r6", (outs), (ins GPR:$r6),

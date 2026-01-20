@@ -6,6 +6,7 @@ tablegen(LLVM SPEX64GenRegisterInfo.inc    -gen-register-info)
 tablegen(LLVM SPEX64GenSubtargetInfo.inc   -gen-subtarget)
 tablegen(LLVM SPEX64GenAsmMatcher.inc      -gen-asm-matcher)
 tablegen(LLVM SPEX64GenAsmWriter.inc       -gen-asm-writer)
+tablegen(LLVM SPEX64GenDisassemblerTables.inc -gen-disassembler)
 
 add_public_tablegen_target(SPEX64CommonTableGen)
 add_llvm_component_group(SPEX64)
@@ -13,6 +14,7 @@ add_llvm_component_group(SPEX64)
 add_subdirectory(TargetInfo)
 add_subdirectory(MCTargetDesc)
 add_subdirectory(AsmParser)
+add_subdirectory(Disassembler)
 
 add_llvm_target(SPEX64CodeGen
   SPEX64TargetMachine.cpp

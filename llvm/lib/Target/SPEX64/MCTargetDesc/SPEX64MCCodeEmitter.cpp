@@ -55,10 +55,11 @@ unsigned SPEX64MCCodeEmitter::getMachineOpValue(
 void SPEX64MCCodeEmitter::encodeInstruction(
     const MCInst &MI, SmallVectorImpl<char> &CB,
     SmallVectorImpl<MCFixup> &Fixups, const MCSubtargetInfo &STI) const {
-  const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
-  unsigned Size = Desc.getSize();
-
   uint32_t W0 = static_cast<uint32_t>(getBinaryCodeForInstr(MI, Fixups, STI));
+  unsigned Size = 4;
+  if (W0 & (1u << 16)) {
+    Size = (W0 & (1u << 15)) ? 12 : 8;
+  }
   support::endian::write(CB, W0, endianness::little);
 
   if (Size <= 4)

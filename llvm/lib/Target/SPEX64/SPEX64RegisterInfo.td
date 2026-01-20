@@ -4,10 +4,9 @@ class SPEX64Acc<string n> : Register<n> {
   let Namespace = "SPEX64";
 }
 
-class SPEX64Reg<string n, bits<6> enc> : Register<n> {
+class SPEX64Reg<string n, bits<16> enc> : Register<n> {
   let Namespace = "SPEX64";
-  bits<6> Encoding;
-  let Encoding = enc;
+  let HWEncoding = enc;
 }
 
 def RX : SPEX64Acc<"rx">;

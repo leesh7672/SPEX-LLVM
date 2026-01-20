@@ -530,6 +530,7 @@ set(LLVM_ALL_TARGETS
   PowerPC
   RISCV
   Sparc
+  SPEX64
   SPIRV
   SystemZ
   VE
@@ -542,6 +543,7 @@ set(LLVM_ALL_EXPERIMENTAL_TARGETS
   ARC
   CSKY
   DirectX
+  SPEX64
   M68k
   Xtensa
 )

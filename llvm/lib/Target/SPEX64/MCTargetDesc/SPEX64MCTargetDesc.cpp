@@ -43,6 +43,7 @@ MCSubtargetInfo *createSPEX64MCSubtargetInfo(const Triple &TT, StringRef CPU,
   return createSPEX64MCSubtargetInfoImpl(TT, CPU, CPU, FS);
 }
 
+namespace llvm {
 MCInstPrinter *createSPEX64MCInstPrinter(const Triple &T,
                                          unsigned SyntaxVariant,
                                          const MCAsmInfo &MAI,
@@ -50,6 +51,7 @@ MCInstPrinter *createSPEX64MCInstPrinter(const Triple &T,
                                          const MCRegisterInfo &MRI) {
   return new SPEX64InstPrinter(MAI, MII, MRI);
 }
+} // namespace llvm
 
 extern "C" void LLVMInitializeSPEX64TargetMC() {
   Target &T = getTheSPEX64Target();

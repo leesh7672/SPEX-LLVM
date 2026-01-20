@@ -5,6 +5,7 @@
 
 namespace llvm {
 class MCAsmBackend;
+class MCAsmInfo;
 class MCCodeEmitter;
 class MCContext;
 class MCInstrInfo;

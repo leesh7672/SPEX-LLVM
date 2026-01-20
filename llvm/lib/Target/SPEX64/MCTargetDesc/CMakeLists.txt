@@ -4,6 +4,7 @@ add_llvm_library(LLVMSPEX64Desc
   SPEX64AsmBackend.cpp
   SPEX64ELFObjectWriter.cpp
   SPEX64MCAsmInfo.cpp
+  SPEX64InstPrinter.cpp
 
   DEPENDS
   SPEX64CommonTableGen

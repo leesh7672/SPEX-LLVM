@@ -1,5 +1,6 @@
 #include "../TargetInfo/SPEX64TargetInfo.h"
 #include "SPEX64MCTargetDesc.h"
+#include "SPEX64InstPrinter.h"
 
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCInstrInfo.h"
@@ -42,6 +43,14 @@ MCSubtargetInfo *createSPEX64MCSubtargetInfo(const Triple &TT, StringRef CPU,
   return createSPEX64MCSubtargetInfoImpl(TT, CPU, CPU, FS);
 }
 
+MCInstPrinter *createSPEX64MCInstPrinter(const Triple &T,
+                                         unsigned SyntaxVariant,
+                                         const MCAsmInfo &MAI,
+                                         const MCInstrInfo &MII,
+                                         const MCRegisterInfo &MRI) {
+  return new SPEX64InstPrinter(MAI, MII, MRI);
+}
+
 extern "C" void LLVMInitializeSPEX64TargetMC() {
   Target &T = getTheSPEX64Target();
 
@@ -50,6 +59,7 @@ extern "C" void LLVMInitializeSPEX64TargetMC() {
   TargetRegistry::RegisterMCInstrInfo(T, createSPEX64MCInstrInfo);
   TargetRegistry::RegisterMCRegInfo(T, createSPEX64MCRegisterInfo);
   TargetRegistry::RegisterMCSubtargetInfo(T, createSPEX64MCSubtargetInfo);
+  TargetRegistry::RegisterMCInstPrinter(T, createSPEX64MCInstPrinter);
 
   TargetRegistry::RegisterMCCodeEmitter(T, createSPEX64MCCodeEmitter);
   TargetRegistry::RegisterMCAsmBackend(T, createSPEX64AsmBackend);

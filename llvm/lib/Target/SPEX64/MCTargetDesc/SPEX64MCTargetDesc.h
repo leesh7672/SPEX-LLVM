@@ -8,6 +8,7 @@ class MCAsmBackend;
 class MCCodeEmitter;
 class MCContext;
 class MCInstrInfo;
+class MCInstPrinter;
 class MCObjectTargetWriter;
 class MCObjectWriter;
 class MCRegisterInfo;
@@ -19,6 +20,10 @@ class raw_pwrite_stream;
 
 MCCodeEmitter *createSPEX64MCCodeEmitter(const MCInstrInfo &MCII,
                                          MCContext &Ctx);
+MCInstPrinter *createSPEX64MCInstPrinter(const Triple &T, unsigned SyntaxVariant,
+                                         const MCAsmInfo &MAI,
+                                         const MCInstrInfo &MII,
+                                         const MCRegisterInfo &MRI);
 MCAsmBackend *createSPEX64AsmBackend(const Target &T, const MCSubtargetInfo &STI,
                                      const MCRegisterInfo &MRI,
                                      const MCTargetOptions &Options);

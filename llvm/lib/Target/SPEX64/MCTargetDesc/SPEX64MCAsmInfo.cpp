@@ -1,6 +1,7 @@
 #include "llvm/MC/MCAsmInfoELF.h"
+#include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
-#include "llvm/Support/Triple.h"
+#include "llvm/TargetParser/Triple.h"
 
 using namespace llvm;
 

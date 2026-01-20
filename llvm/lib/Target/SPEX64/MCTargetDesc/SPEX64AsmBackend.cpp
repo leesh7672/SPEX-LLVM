@@ -1,33 +1,31 @@
 #include "llvm/MC/MCAsmBackend.h"
-#include "llvm/MC/MCFixupKindInfo.h"
-#include "llvm/MC/MCObjectWriter.h"
+#include "llvm/MC/MCFixup.h"
 #include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/MC/MCTargetOptions.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/Endian.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 
 namespace {
 class SPEX64AsmBackend : public MCAsmBackend {
 public:
-  SPEX64AsmBackend() : MCAsmBackend(support::little) {}
+  SPEX64AsmBackend() : MCAsmBackend(endianness::little) {}
 
   std::unique_ptr<MCObjectTargetWriter>
   createObjectTargetWriter() const override {
     llvm_unreachable("Use createSPEX64ELFObjectWriter()");
   }
 
-  std::unique_ptr<MCObjectWriter>
-  createObjectWriter(raw_pwrite_stream &OS) const override {
-    llvm_unreachable("Registered via RegisterMCObjectWriter()");
-  }
-
-  void applyFixup(const MCAssembler &, const MCFixup &, const MCValue &,
-                  MutableArrayRef<char>, uint64_t, bool) const override {
-  }
-
-  bool mayNeedRelaxation(const MCInst &) const override { return false; }
-  void relaxInstruction(const MCInst &, const MCSubtargetInfo &, MCInst &) const override {
-    llvm_unreachable("relaxation not implemented");
+  void applyFixup(const MCFragment &Fragment, const MCFixup &Fixup,
+                  const MCValue &Target, uint8_t *Data, uint64_t,
+                  bool) override {
+    (void)Fragment;
+    (void)Fixup;
+    (void)Target;
+    (void)Data;
   }
 
   bool writeNopData(raw_ostream &OS, uint64_t Count,
@@ -40,12 +38,7 @@ public:
     return Count == 0;
   }
 
-  const MCFixupKindInfo &getFixupKindInfo(MCFixupKind Kind) const override {
-    static const MCFixupKindInfo Infos[] = {
-        {"FK_NONE", 0, 0, 0},
-    };
-    if (Kind >= FirstTargetFixupKind)
-      return Infos[0];
+  MCFixupKindInfo getFixupKindInfo(MCFixupKind Kind) const override {
     return MCAsmBackend::getFixupKindInfo(Kind);
   }
 };

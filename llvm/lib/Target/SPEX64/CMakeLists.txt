@@ -18,3 +18,4 @@ add_llvm_target(SPEX64CodeGen
 )
 
 target_link_libraries(LLVMSPEX64CodeGen PRIVATE LLVMSPEX64Info LLVMSPEX64Desc)
+target_include_directories(LLVMSPEX64Desc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

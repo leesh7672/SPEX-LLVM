@@ -1,29 +1,29 @@
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/MC/MCCodeEmitter.h"
+#include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstrInfo.h"
-#include "llvm/MC/MCContext.h"
-#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Endian.h"
 
-#include "SPEX64GenInstrInfo.inc" // NOP enum 필요할 때 대비(없어도 됨)
-
+#include <cstdint>
 using namespace llvm;
 
 namespace {
 class SPEX64MCCodeEmitter : public MCCodeEmitter {
-  const MCInstrInfo &MCII;
-
 public:
-  explicit SPEX64MCCodeEmitter(const MCInstrInfo &MCII) : MCII(MCII) {}
+  explicit SPEX64MCCodeEmitter(const MCInstrInfo &) {}
   ~SPEX64MCCodeEmitter() override = default;
 
-  void encodeInstruction(const MCInst &Inst, raw_ostream &OS,
+  void encodeInstruction(const MCInst &Inst, SmallVectorImpl<char> &CB,
                          SmallVectorImpl<MCFixup> &Fixups,
                          const MCSubtargetInfo &STI) const override {
+    (void)Inst;
     (void)Fixups;
     (void)STI;
     uint32_t W0 = 0;
-
-    OS.write(reinterpret_cast<const char *>(&W0), sizeof(W0));
+    char Buf[sizeof(W0)];
+    support::endian::write32le(Buf, W0);
+    CB.append(Buf, Buf + sizeof(Buf));
   }
 };
 } // namespace

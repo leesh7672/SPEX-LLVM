@@ -1,4 +1,5 @@
 #include "../TargetInfo/SPEX64TargetInfo.h"
+#include "SPEX64MCTargetDesc.h"
 
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCInstrInfo.h"
@@ -6,6 +7,7 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/TargetParser/Triple.h"
 
 using namespace llvm;
 

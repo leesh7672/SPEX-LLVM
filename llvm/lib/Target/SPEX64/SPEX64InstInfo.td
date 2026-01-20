@@ -139,7 +139,8 @@ def SP64 : SPEX64Inst<"sp\t$r6, $target", (outs),
 
 // mov* (rx <-> r6). Lane-local variants are represented as separate mnemonics.
 multiclass SPEX64_MOV_SZ<string def_suf, string asm_suf, bits<2> sz2> {
-  def MOV#def_suf : SPEX64Inst<"mov"#asm_suf#"\t$r6", (outs), (ins GPR:$r6),
+  def MOV#def_suf : SPEX64Inst<"mov"#asm_suf#"\trx, $r6", (outs),
+                               (ins GPR:$r6),
                                0x300, 0, sz2, 0, 0>;
   def MOV#def_suf#"_R" : SPEX64Inst<"mov"#asm_suf#"\t$r6, rx", (outs),
                                    (ins GPR:$r6),
@@ -191,12 +192,12 @@ defm MOV_ALIAS : SPEX64_MOV_ALIAS_SZ<"64", "64">;
 
 // li*
 multiclass SPEX64_LI_SZ<string def_suf, string asm_suf, bits<2> sz2> {
-  def LI#def_suf#"_32" : SPEX64Inst<"li"#asm_suf#"\t$imm", (outs),
+  def LI#def_suf#"_32" : SPEX64Inst<"li"#asm_suf#"\trx, $imm", (outs),
                                   (ins SPEX64Imm32:$imm),
                                   0x302, 0, sz2, 1, 0> {
     let Size = 8;
   }
-  def LI#def_suf#"_64" : SPEX64Inst<"li"#asm_suf#"\t$imm", (outs),
+  def LI#def_suf#"_64" : SPEX64Inst<"li"#asm_suf#"\trx, $imm", (outs),
                                   (ins SPEX64Imm64:$imm),
                                   0x302, 0, sz2, 1, 1> {
     let Size = 12;

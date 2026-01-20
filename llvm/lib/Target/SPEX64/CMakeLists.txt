@@ -1,3 +1,5 @@
+add_llvm_component_group(SPEX64)
+
 add_subdirectory(TargetInfo)
 add_subdirectory(MCTargetDesc)
 

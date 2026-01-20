@@ -29,13 +29,13 @@ createSPEX64ELFObjectTargetWriter(uint8_t OSABI);
 } // namespace llvm
 
 #define GET_REGINFO_ENUM
-#include "SPEX64GenRegisterInfo.inc"
+#include "../SPEX64GenRegisterInfo.inc"
 
 #define GET_INSTRINFO_ENUM
 #define GET_INSTRINFO_MC_HELPER_DECLS
-#include "SPEX64GenInstrInfo.inc"
+#include "../SPEX64GenInstrInfo.inc"
 
 #define GET_SUBTARGETINFO_ENUM
-#include "SPEX64GenSubtargetInfo.inc"
+#include "../SPEX64GenSubtargetInfo.inc"
 
 #endif

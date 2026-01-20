@@ -1,8 +1,27 @@
 include "SPEX64RegisterInfo.td"
 
-def SPEX64Imm9  : Operand<i32>;
-def SPEX64Imm32 : Operand<i32>;
-def SPEX64Imm64 : Operand<i64>;
+def SPEX64Imm9AsmOperand : AsmOperandClass {
+  let Name = "SPEX64Imm9";
+  let ParserMethod = "parseImm";
+  let PredicateMethod = "isImm9";
+  let RenderMethod = "addImmOperands";
+}
+def SPEX64Imm32AsmOperand : AsmOperandClass {
+  let Name = "SPEX64Imm32";
+  let ParserMethod = "parseImm";
+  let PredicateMethod = "isImm32";
+  let RenderMethod = "addImmOperands";
+}
+def SPEX64Imm64AsmOperand : AsmOperandClass {
+  let Name = "SPEX64Imm64";
+  let ParserMethod = "parseImm";
+  let PredicateMethod = "isImm64";
+  let RenderMethod = "addImmOperands";
+}
+
+def SPEX64Imm9  : Operand<i32> { let ParserMatchClass = SPEX64Imm9AsmOperand; }
+def SPEX64Imm32 : Operand<i32> { let ParserMatchClass = SPEX64Imm32AsmOperand; }
+def SPEX64Imm64 : Operand<i64> { let ParserMatchClass = SPEX64Imm64AsmOperand; }
 
 class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
                  bits<2> sz2, bits<1> i1, bits<1> i64> : Instruction {

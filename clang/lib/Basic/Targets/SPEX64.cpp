@@ -56,10 +56,6 @@ SPEX64TargetInfo::SPEX64TargetInfo(const llvm::Triple &Triple,
   // If you add an actual ABI later, you can switch accordingly.
   TLSSupported = false;
 
-  // Typical: 16-byte stack alignment for 64-bit targets.
-  // Adjust if your ABI requires something else.
-  StackAlign = 128;
-
   // IEEE float defaults (if your ISA/ABI differs, tweak)
   FloatWidth = 32;
   FloatAlign = 32;
@@ -80,7 +76,7 @@ SPEX64TargetInfo::SPEX64TargetInfo(const llvm::Triple &Triple,
   // See other targets for patterns.
 }
 
-BuiltinVaListKind SPEX64TargetInfo::getBuiltinVaListKind() const {
+TargetInfo::BuiltinVaListKind SPEX64TargetInfo::getBuiltinVaListKind() const {
   return TargetInfo::VoidPtrBuiltinVaList;
 }
 

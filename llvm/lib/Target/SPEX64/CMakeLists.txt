@@ -23,7 +23,10 @@ add_llvm_target(SPEX64CodeGen
   SPEX64InstrInfo.cpp
   SPEX64RegisterInfo.cpp
   SPEX64FrameLowering.cpp
+  SPEX64ISelLowering.cpp
 )
 
 target_link_libraries(LLVMSPEX64CodeGen PRIVATE LLVMSPEX64Info LLVMSPEX64Desc LLVMSPEX64AsmParser)
-target_include_directories(LLVMSPEX64Desc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(LLVMSPEX64CodeGen PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(LLVMSPEX64Desc   PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+

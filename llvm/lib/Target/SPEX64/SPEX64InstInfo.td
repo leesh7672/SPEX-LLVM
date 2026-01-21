@@ -312,6 +312,19 @@ multiclass SPEX64_LS_R6<bits<12> opc, string mn, string def_suf, string asm_suf,
                                       opc, x1, sz2, 1, 1> {
   }
 }
+multiclass SPEX64_ST_R6<bits<12> opc, string mn, string def_suf, string asm_suf,
+                        bits<2> sz2, bits<1> x1> {
+  def NAME#def_suf : SPEX64Inst<mn#asm_suf#"\t[rx], $r6", (outs), (ins GPR:$r6),
+                               opc, x1, sz2, 0, 0>;
+  def NAME#def_suf#"_I32" : SPEX64Inst<mn#asm_suf#"\t[rx + $imm], $r6", (outs),
+                                      (ins GPR:$r6, SPEX64Imm32:$imm),
+                                      opc, x1, sz2, 1, 0> {
+  }
+  def NAME#def_suf#"_I64" : SPEX64Inst<mn#asm_suf#"\t[rx + $imm], $r6", (outs),
+                                      (ins GPR:$r6, SPEX64Imm64:$imm),
+                                      opc, x1, sz2, 1, 1> {
+  }
+}
 multiclass SPEX64_LS_NO_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
   defm NAME : SPEX64_LS_NO_R6<opc, mn, "8",  "8",  0b00, x1>;
   defm NAME : SPEX64_LS_NO_R6<opc, mn, "16", "16", 0b01, x1>;
@@ -324,13 +337,19 @@ multiclass SPEX64_LS_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
   defm NAME : SPEX64_LS_R6<opc, mn, "32", "32", 0b10, x1>;
   defm NAME : SPEX64_LS_R6<opc, mn, "64", "64", 0b11, x1>;
 }
+multiclass SPEX64_ST_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
+  defm NAME : SPEX64_ST_R6<opc, mn, "8",  "8",  0b00, x1>;
+  defm NAME : SPEX64_ST_R6<opc, mn, "16", "16", 0b01, x1>;
+  defm NAME : SPEX64_ST_R6<opc, mn, "32", "32", 0b10, x1>;
+  defm NAME : SPEX64_ST_R6<opc, mn, "64", "64", 0b11, x1>;
+}
 
 defm LDZ : SPEX64_LS_NO_R6_SZS<0x700, "ldz", 0>;
 defm LDZ_R : SPEX64_LS_R6_SZS<0x700, "ldz", 1>;
 defm LDS : SPEX64_LS_NO_R6_SZS<0x701, "lds", 0>;
 defm LDS_R : SPEX64_LS_R6_SZS<0x701, "lds", 1>;
 defm ST : SPEX64_LS_NO_R6_SZS<0x702, "st", 0>;
-defm ST_R : SPEX64_LS_R6_SZS<0x702, "st", 1>;
+defm ST_R : SPEX64_ST_R6_SZS<0x702, "st", 1>;
 
 // Atomic
 def CAS64 : SPEX64Inst<"cas64\t$r6", (outs), (ins GPR:$r6), 0x800, 0, 0b11, 0, 0>;

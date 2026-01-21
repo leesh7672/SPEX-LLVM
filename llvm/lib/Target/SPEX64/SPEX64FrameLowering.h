@@ -6,8 +6,7 @@
 namespace llvm {
 class SPEX64FrameLowering : public TargetFrameLowering {
 public:
-  SPEX64FrameLowering()
-      : TargetFrameLowering(StackGrowsDown, Align(16), 0) {}
+  SPEX64FrameLowering() : TargetFrameLowering(StackGrowsDown, Align(16), 0) {}
 
   void emitPrologue(MachineFunction &, MachineBasicBlock &) const override {}
   void emitEpilogue(MachineFunction &, MachineBasicBlock &) const override {}

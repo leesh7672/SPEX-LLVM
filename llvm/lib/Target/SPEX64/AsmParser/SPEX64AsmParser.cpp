@@ -155,6 +155,7 @@ class SPEX64AsmParser : public MCTargetAsmParser {
   bool parseMemOperand(OperandVector &Operands) {
     SMLoc StartLoc = getLexer().getLoc();
     getLexer().Lex(); // '['
+    Operands.push_back(SPEX64Operand::createToken("[", StartLoc));
 
     if (getLexer().isNot(AsmToken::Identifier) ||
         getLexer().getTok().getIdentifier().lower() != "rx") {
@@ -169,15 +170,21 @@ class SPEX64AsmParser : public MCTargetAsmParser {
         SPEX64Operand::createReg(Reg, RegTok.getLoc(), RegTok.getEndLoc()));
 
     if (getLexer().is(AsmToken::RBrac)) {
+      SMLoc EndLoc = getLexer().getLoc();
       getLexer().Lex();
+      Operands.push_back(SPEX64Operand::createToken("]", EndLoc));
       return false; // no offset operand
     }
 
     bool IsMinus = false;
     if (getLexer().is(AsmToken::Plus)) {
+      Operands.push_back(
+          SPEX64Operand::createToken("+", getLexer().getLoc()));
       getLexer().Lex();
     } else if (getLexer().is(AsmToken::Minus)) {
       IsMinus = true;
+      Operands.push_back(
+          SPEX64Operand::createToken("+", getLexer().getLoc()));
       getLexer().Lex();
     } else {
       return Error(StartLoc, "expected + or - in memory operand");
@@ -192,9 +199,10 @@ class SPEX64AsmParser : public MCTargetAsmParser {
 
     if (getLexer().isNot(AsmToken::RBrac))
       return Error(StartLoc, "expected ]");
-    getLexer().Lex();
-
     SMLoc EndLoc = getLexer().getLoc();
+    getLexer().Lex();
+    Operands.push_back(SPEX64Operand::createToken("]", EndLoc));
+
     Operands.push_back(SPEX64Operand::createImm(Expr, StartLoc, EndLoc));
     return false;
   }

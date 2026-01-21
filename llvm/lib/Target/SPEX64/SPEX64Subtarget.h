@@ -3,6 +3,9 @@
 
 #include "SPEX64FrameLowering.h"
 #include "SPEX64InstrInfo.h"
+
+#include "llvm/CodeGen/TargetSubtargetInfo.h"
+#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/TargetParser/Triple.h"
 
 #define GET_SUBTARGETINFO_HEADER
@@ -28,7 +31,7 @@ public:
   void setLaneID(unsigned V) { CurLane = static_cast<Lane>(V & 3u); }
   Lane getLane() const { return CurLane; }
 
-  const SPEX64InstrInfo *getInstrInfo() const override { return &InstrInfo; }
+  const TargetInstrInfo *getInstrInfo() const override { return &InstrInfo; }
   const TargetRegisterInfo *getRegisterInfo() const override;
   const TargetFrameLowering *getFrameLowering() const override {
     return &FrameLowering;

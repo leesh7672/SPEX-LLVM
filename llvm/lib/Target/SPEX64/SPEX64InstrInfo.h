@@ -5,6 +5,8 @@
 
 #define GET_INSTRINFO_HEADER
 #include "SPEX64GenInstrInfo.inc"
+#include "llvm/CodeGen/TargetInstrInfo.h"
+#include "llvm/CodeGen/TargetSubtargetInfo.h"
 
 namespace llvm {
 

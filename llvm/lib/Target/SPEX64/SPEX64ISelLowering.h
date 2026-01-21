@@ -9,13 +9,9 @@ class SPEX64TargetMachine;
 class SPEX64Subtarget;
 
 class SPEX64TargetLowering : public TargetLowering {
-  const SPEX64Subtarget &ST;
-
 public:
   explicit SPEX64TargetLowering(const SPEX64TargetMachine &TM,
                                 const SPEX64Subtarget &ST);
-
-  const char *getTargetNodeName(unsigned Opcode) const override;
 };
 
 } // namespace llvm

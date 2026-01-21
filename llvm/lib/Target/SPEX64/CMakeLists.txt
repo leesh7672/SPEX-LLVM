@@ -19,6 +19,10 @@ add_subdirectory(Disassembler)
 add_llvm_target(SPEX64CodeGen
   SPEX64TargetMachine.cpp
   SPEX64TargetMachineImpl.cpp
+  SPEX64Subtarget.cpp
+  SPEX64InstrInfo.cpp
+  SPEX64RegisterInfo.cpp
+  SPEX64FrameLowering.cpp
 )
 
 target_link_libraries(LLVMSPEX64CodeGen PRIVATE LLVMSPEX64Info LLVMSPEX64Desc LLVMSPEX64AsmParser)

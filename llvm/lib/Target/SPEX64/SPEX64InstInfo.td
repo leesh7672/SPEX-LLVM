@@ -46,13 +46,13 @@ class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
   bits<64> imm;
   bits<64> target;
 
-  let Inst{0-11} = opc;
-  let Inst{12}    = x1;
-  let Inst{13-14} = sz2;
-  let Inst{15}    = i1;
-  let Inst{16}    = i64;
-  let Inst{17-22}  = r6;
-  let Inst{23-31}   = K9;
+  let Inst{31-20} = opc;
+  let Inst{19}    = x1;
+  let Inst{18-17} = sz2;
+  let Inst{16}    = i1;
+  let Inst{15}    = i64;
+  let Inst{14-9}  = r6;
+  let Inst{8-0}   = K9;
 
   let K9 = 0;
   let imm = 0;
@@ -207,9 +207,9 @@ defm MOV_ALIAS : SPEX64_MOV_ALIAS_SZ<"64", "64">;
 
 // li*
 multiclass SPEX64_LI_SZ<string def_suf, string asm_suf, bits<2> sz2> {
-  def LI#def_suf#"_32" : SPEX64InstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEX64Imm32:$imm), 0, 0, sz2, 1, 0> {
+  def LI#def_suf#"_32" : SPEX64InstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEX64Imm32:$imm), 0x302, 0, sz2, 1, 0> {
   }
-  def LI#def_suf#"_64" : SPEX64InstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEX64Imm64:$imm), 0, 0, sz2, 1, 1> {
+  def LI#def_suf#"_64" : SPEX64InstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEX64Imm64:$imm), 0x302, 0, sz2, 1, 1> {
   }
 }
 defm LI : SPEX64_LI_SZ<"8",  "8",  0b00>;

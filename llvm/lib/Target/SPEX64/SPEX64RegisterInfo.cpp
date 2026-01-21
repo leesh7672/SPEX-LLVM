@@ -1,5 +1,5 @@
-#include "SPEX64.h"
 #include "SPEX64RegisterInfo.h"
+#include "SPEX64.h"
 #include "SPEX64Subtarget.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"

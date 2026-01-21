@@ -17,6 +17,7 @@ add_subdirectory(AsmParser)
 add_subdirectory(Disassembler)
 
 add_llvm_target(SPEX64CodeGen
+  SPEX64AsmPrinter.cpp
   SPEX64TargetMachine.cpp
   SPEX64TargetMachineImpl.cpp
   SPEX64Subtarget.cpp

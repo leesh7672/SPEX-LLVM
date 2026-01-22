@@ -32,6 +32,8 @@ def SPEX64Imm64 : Operand<i64> {
   let DecoderMethod = "DecodeSPEX64Imm64";
 }
 
+def brtarget : Operand<OtherVT>;
+
 class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
                  bits<2> sz2, bits<1> i1, bits<1> i64> : Instruction {
   let OutOperandList = outs;
@@ -104,10 +106,10 @@ def ILL     : SPEX64InstNoR6<"ill", (outs), (ins), 0x00B, 0, 0b00, 0, 0>;
 // bcc (absolute target, hyphenated condition)
 multiclass SPEX64_BCC_COND<string cond, bits<9> k9val> {
   def BCC_#cond#_32 : SPEX64BCCInst<"bcc-"#cond#"\t$target", (outs),
-                                   (ins SPEX64Imm32:$target), k9val, 0> {
+                                   (ins brtarget:$target), k9val, 0> {
   }
   def BCC_#cond#_64 : SPEX64BCCInst<"bcc-"#cond#"\t$target", (outs),
-                                   (ins SPEX64Imm64:$target), k9val, 1> {
+                                   (ins brtarget:$target), k9val, 1> {
   }
 }
 defm BCC_EQ  : SPEX64_BCC_COND<"eq",  0>;
@@ -157,31 +159,41 @@ def SP64 : SPEX64Inst<"sp\t$r6, $target", (outs),
 // mov* (rx <-> r6). Lane-local variants are represented as separate mnemonics.
 multiclass SPEX64_MOV_SZ<string def_suf, string asm_suf, bits<2> sz2> {
   def MOV#def_suf : SPEX64Inst<"mov"#asm_suf#"\trx, $r6", (outs),
-                               (ins GPR:$r6), 0x300, 0, sz2, 0, 0>;
-  def MOV#def_suf#"_R" : SPEX64Inst<"mov"#asm_suf#"\t$r6, rx", (outs),
-                                   (ins GPR:$r6), 0x300, 1, sz2, 0, 0>;
+                               (ins GPR:$r6), 0x300, 0, sz2, 0, 0> {
+    let Defs = [RX];
+  }
+  def MOV#def_suf#"_R" : SPEX64Inst<"mov"#asm_suf#"\t$r6, rx", (outs GPR:$r6),
+                                   (ins), 0x300, 1, sz2, 0, 0> {
+    let Uses = [RX];
+  }
   def MOV#def_suf#"_CX0" : SPEX64InstNoR6<"mov"#asm_suf#"\tcx0", (outs), (ins),
                                     0x300, 0, sz2, 0, 0> {
+    let Defs = [RX];
     let K9 = 1;
   }
   def MOV#def_suf#"_CX1" : SPEX64InstNoR6<"mov"#asm_suf#"\tcx1", (outs), (ins),
                                     0x300, 0, sz2, 0, 0> {
+    let Defs = [RX];
     let K9 = 2;
   }
   def MOV#def_suf#"_CAS" : SPEX64InstNoR6<"mov"#asm_suf#"\tcas", (outs), (ins),
                                     0x300, 0, sz2, 0, 0> {
+    let Defs = [RX];
     let K9 = 3;
   }
   def MOV#def_suf#"_CX0_R" : SPEX64InstNoR6<"mov"#asm_suf#"\tcx0, rx", (outs), (ins),
                                       0x300, 1, sz2, 0, 0> {
+    let Uses = [RX];
     let K9 = 1;
   }
   def MOV#def_suf#"_CX1_R" : SPEX64InstNoR6<"mov"#asm_suf#"\tcx1, rx", (outs), (ins),
                                       0x300, 1, sz2, 0, 0> {
+    let Uses = [RX];
     let K9 = 2;
   }
   def MOV#def_suf#"_CAS_R" : SPEX64InstNoR6<"mov"#asm_suf#"\tcas, rx", (outs), (ins),
                                       0x300, 1, sz2, 0, 0> {
+    let Uses = [RX];
     let K9 = 3;
   }
 }
@@ -208,8 +220,10 @@ defm MOV_ALIAS : SPEX64_MOV_ALIAS_SZ<"64", "64">;
 // li*
 multiclass SPEX64_LI_SZ<string def_suf, string asm_suf, bits<2> sz2> {
   def LI#def_suf#"_32" : SPEX64InstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEX64Imm32:$imm), 0x302, 0, sz2, 1, 0> {
+    let Defs = [RX];
   }
   def LI#def_suf#"_64" : SPEX64InstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEX64Imm64:$imm), 0x302, 0, sz2, 1, 1> {
+    let Defs = [RX];
   }
 }
 defm LI : SPEX64_LI_SZ<"8",  "8",  0b00>;
@@ -222,14 +236,21 @@ multiclass SPEX64_ALU_SZ<bits<12> opc, string mn, string def_suf,
                          string asm_suf, bits<2> sz2> {
   def NAME#def_suf#"_R" : SPEX64Inst<mn#asm_suf#"\t$r6", (outs),
                                     (ins GPR:$r6),
-                                    opc, 0, sz2, 0, 0>;
+                                    opc, 0, sz2, 0, 0> {
+    let Uses = [RX];
+    let Defs = [RX];
+  }
   def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
                                       (ins SPEX64Imm32:$imm),
                                       opc, 0, sz2, 1, 0> {
+    let Uses = [RX];
+    let Defs = [RX];
   }
   def NAME#def_suf#"_I64" : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
                                       (ins SPEX64Imm64:$imm),
                                       opc, 0, sz2, 1, 1> {
+    let Uses = [RX];
+    let Defs = [RX];
   }
 }
 multiclass SPEX64_ALU<bits<12> opc, string mn> {
@@ -238,19 +259,46 @@ multiclass SPEX64_ALU<bits<12> opc, string mn> {
   defm NAME : SPEX64_ALU_SZ<opc, mn, "32", "32", 0b10>;
   defm NAME : SPEX64_ALU_SZ<opc, mn, "64", "64", 0b11>;
 }
+multiclass SPEX64_ALUFLAGS_SZ<bits<12> opc, string mn, string def_suf,
+                              string asm_suf, bits<2> sz2> {
+  def NAME#def_suf#"_R" : SPEX64Inst<mn#asm_suf#"\t$r6", (outs),
+                                    (ins GPR:$r6),
+                                    opc, 0, sz2, 0, 0> {
+    let Uses = [RX];
+  }
+  def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
+                                     (ins SPEX64Imm32:$imm),
+                                     opc, 0, sz2, 1, 0> {
+    let Uses = [RX];
+  }
+  def NAME#def_suf#"_I64" : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
+                                     (ins SPEX64Imm64:$imm),
+                                     opc, 0, sz2, 1, 1> {
+    let Uses = [RX];
+  }
+}
+multiclass SPEX64_ALUFLAGS<bits<12> opc, string mn> {
+  defm NAME : SPEX64_ALUFLAGS_SZ<opc, mn, "8",  "8",  0b00>;
+  defm NAME : SPEX64_ALUFLAGS_SZ<opc, mn, "16", "16", 0b01>;
+  defm NAME : SPEX64_ALUFLAGS_SZ<opc, mn, "32", "32", 0b10>;
+  defm NAME : SPEX64_ALUFLAGS_SZ<opc, mn, "64", "64", 0b11>;
+}
 defm ADD  : SPEX64_ALU<0x400, "add">;
 defm SUB  : SPEX64_ALU<0x401, "sub">;
 defm AND  : SPEX64_ALU<0x402, "and">;
 defm OR   : SPEX64_ALU<0x403, "or">;
 defm XOR  : SPEX64_ALU<0x404, "xor">;
-defm CMP  : SPEX64_ALU<0x405, "cmp">;
-defm TEST : SPEX64_ALU<0x406, "test">;
+defm CMP  : SPEX64_ALUFLAGS<0x405, "cmp">;
+defm TEST : SPEX64_ALUFLAGS<0x406, "test">;
 
 // Unary ALU
 multiclass SPEX64_UNARY_SZ<bits<12> opc, string mn, string def_suf,
                            string asm_suf, bits<2> sz2> {
   def NAME#def_suf : SPEX64InstNoR6<mn#asm_suf, (outs), (ins),
-                               opc, 0, sz2, 0, 0>;
+                               opc, 0, sz2, 0, 0> {
+    let Uses = [RX];
+    let Defs = [RX];
+  }
 }
 multiclass SPEX64_UNARY<bits<12> opc, string mn> {
   defm NAME : SPEX64_UNARY_SZ<opc, mn, "8",  "8",  0b00>;
@@ -269,6 +317,8 @@ multiclass SPEX64_SHIFT_SZ<bits<12> opc, string mn, string def_suf,
   def NAME#def_suf : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
                                 (ins SPEX64Imm32:$imm),
                                 opc, 0, sz2, 1, 0> {
+    let Uses = [RX];
+    let Defs = [RX];
   }
 }
 multiclass SPEX64_SHIFT<bits<12> opc, string mn> {
@@ -289,40 +339,74 @@ defm BINV : SPEX64_SHIFT<0x613, "binv">;
 multiclass SPEX64_LS_NO_R6<bits<12> opc, string mn, string def_suf,
                            string asm_suf, bits<2> sz2, bits<1> x1> {
   def NAME#def_suf : SPEX64InstNoR6<mn#asm_suf#"\t[rx]", (outs), (ins),
-                               opc, x1, sz2, 0, 0>;
+                               opc, x1, sz2, 0, 0> {
+    let Uses = [RX];
+  }
   def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\t[rx + $imm]", (outs),
                                       (ins SPEX64Imm32:$imm),
                                       opc, x1, sz2, 1, 0> {
+    let Uses = [RX];
   }
   def NAME#def_suf#"_I64" : SPEX64InstNoR6<mn#asm_suf#"\t[rx + $imm]", (outs),
                                       (ins SPEX64Imm64:$imm),
                                       opc, x1, sz2, 1, 1> {
+    let Uses = [RX];
   }
 }
 multiclass SPEX64_LS_R6<bits<12> opc, string mn, string def_suf, string asm_suf,
                         bits<2> sz2, bits<1> x1> {
-  def NAME#def_suf : SPEX64Inst<mn#asm_suf#"\t$r6, [rx]", (outs), (ins GPR:$r6),
-                               opc, x1, sz2, 0, 0>;
-  def NAME#def_suf#"_I32" : SPEX64Inst<mn#asm_suf#"\t$r6, [rx + $imm]", (outs),
-                                      (ins GPR:$r6, SPEX64Imm32:$imm),
-                                      opc, x1, sz2, 1, 0> {
+  def NAME#def_suf : SPEX64Inst<mn#asm_suf#"\t$r6, [rx]", (outs GPR:$r6),
+                               (ins), opc, x1, sz2, 0, 0> {
+    let Uses = [RX];
   }
-  def NAME#def_suf#"_I64" : SPEX64Inst<mn#asm_suf#"\t$r6, [rx + $imm]", (outs),
-                                      (ins GPR:$r6, SPEX64Imm64:$imm),
+  def NAME#def_suf#"_I32" : SPEX64Inst<mn#asm_suf#"\t$r6, [rx + $imm]",
+                                      (outs GPR:$r6),
+                                      (ins SPEX64Imm32:$imm),
+                                      opc, x1, sz2, 1, 0> {
+    let Uses = [RX];
+  }
+  def NAME#def_suf#"_I64" : SPEX64Inst<mn#asm_suf#"\t$r6, [rx + $imm]",
+                                      (outs GPR:$r6),
+                                      (ins SPEX64Imm64:$imm),
                                       opc, x1, sz2, 1, 1> {
+    let Uses = [RX];
   }
 }
 multiclass SPEX64_ST_R6<bits<12> opc, string mn, string def_suf, string asm_suf,
                         bits<2> sz2, bits<1> x1> {
   def NAME#def_suf : SPEX64Inst<mn#asm_suf#"\t[rx], $r6", (outs), (ins GPR:$r6),
-                               opc, x1, sz2, 0, 0>;
+                               opc, x1, sz2, 0, 0> {
+    let Uses = [RX];
+  }
   def NAME#def_suf#"_I32" : SPEX64Inst<mn#asm_suf#"\t[rx + $imm], $r6", (outs),
                                       (ins GPR:$r6, SPEX64Imm32:$imm),
                                       opc, x1, sz2, 1, 0> {
+    let Uses = [RX];
   }
   def NAME#def_suf#"_I64" : SPEX64Inst<mn#asm_suf#"\t[rx + $imm], $r6", (outs),
                                       (ins GPR:$r6, SPEX64Imm64:$imm),
                                       opc, x1, sz2, 1, 1> {
+    let Uses = [RX];
+  }
+}
+multiclass SPEX64_LD_NO_R6<bits<12> opc, string mn, string def_suf,
+                           string asm_suf, bits<2> sz2, bits<1> x1> {
+  def NAME#def_suf : SPEX64InstNoR6<mn#asm_suf#"\t[rx]", (outs), (ins),
+                               opc, x1, sz2, 0, 0> {
+    let Uses = [RX];
+    let Defs = [RX];
+  }
+  def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\t[rx + $imm]", (outs),
+                                      (ins SPEX64Imm32:$imm),
+                                      opc, x1, sz2, 1, 0> {
+    let Uses = [RX];
+    let Defs = [RX];
+  }
+  def NAME#def_suf#"_I64" : SPEX64InstNoR6<mn#asm_suf#"\t[rx + $imm]", (outs),
+                                      (ins SPEX64Imm64:$imm),
+                                      opc, x1, sz2, 1, 1> {
+    let Uses = [RX];
+    let Defs = [RX];
   }
 }
 multiclass SPEX64_LS_NO_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
@@ -330,6 +414,12 @@ multiclass SPEX64_LS_NO_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
   defm NAME : SPEX64_LS_NO_R6<opc, mn, "16", "16", 0b01, x1>;
   defm NAME : SPEX64_LS_NO_R6<opc, mn, "32", "32", 0b10, x1>;
   defm NAME : SPEX64_LS_NO_R6<opc, mn, "64", "64", 0b11, x1>;
+}
+multiclass SPEX64_LD_NO_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
+  defm NAME : SPEX64_LD_NO_R6<opc, mn, "8",  "8",  0b00, x1>;
+  defm NAME : SPEX64_LD_NO_R6<opc, mn, "16", "16", 0b01, x1>;
+  defm NAME : SPEX64_LD_NO_R6<opc, mn, "32", "32", 0b10, x1>;
+  defm NAME : SPEX64_LD_NO_R6<opc, mn, "64", "64", 0b11, x1>;
 }
 multiclass SPEX64_LS_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
   defm NAME : SPEX64_LS_R6<opc, mn, "8",  "8",  0b00, x1>;
@@ -344,9 +434,9 @@ multiclass SPEX64_ST_R6_SZS<bits<12> opc, string mn, bits<1> x1> {
   defm NAME : SPEX64_ST_R6<opc, mn, "64", "64", 0b11, x1>;
 }
 
-defm LDZ : SPEX64_LS_NO_R6_SZS<0x700, "ldz", 0>;
+defm LDZ : SPEX64_LD_NO_R6_SZS<0x700, "ldz", 0>;
 defm LDZ_R : SPEX64_LS_R6_SZS<0x700, "ldz", 1>;
-defm LDS : SPEX64_LS_NO_R6_SZS<0x701, "lds", 0>;
+defm LDS : SPEX64_LD_NO_R6_SZS<0x701, "lds", 0>;
 defm LDS_R : SPEX64_LS_R6_SZS<0x701, "lds", 1>;
 defm ST : SPEX64_LS_NO_R6_SZS<0x702, "st", 0>;
 defm ST_R : SPEX64_ST_R6_SZS<0x702, "st", 1>;
@@ -372,5 +462,220 @@ def IPISEND : SPEX64Inst<"ipisend\t$r6", (outs), (ins GPR:$r6),
 // Lane read (K9 encodes LID and FIELD).
 def LRD : SPEX64K9InstNoR6<"lrd\t$k9", (outs), (ins SPEX64Imm9:$k9),
                        0xA00, 0, 0b00, 0, 0>;
+
+// SelectionDAG patterns and pseudos.
+def SPEX64Imm32Pat : PatLeaf<(i32 imm)>;
+def SPEX64Imm64Pat : PatLeaf<(i64 imm)>;
+def SPEX64Addr : ComplexPattern<i64, 2, "SelectAddr", [add, sub, frameindex]>;
+
+class SPEX64PseudoInst<dag outs, dag ins> : Instruction {
+  let OutOperandList = outs;
+  let InOperandList = ins;
+  let AsmString = "";
+  let isPseudo = 1;
+  let isCodeGenOnly = 1;
+  let hasNoSchedulingInfo = 1;
+}
+
+let hasSideEffects = 1, isBranch = 1, isTerminator = 1, isBarrier = 1 in {
+  def PSEUDO_BR_CC32 : SPEX64PseudoInst<(outs),
+                                       (ins GPR:$lhs, GPR:$rhs, brtarget:$dst,
+                                            i32imm:$cc)>;
+  def PSEUDO_BR_CC64 : SPEX64PseudoInst<(outs),
+                                       (ins GPR:$lhs, GPR:$rhs, brtarget:$dst,
+                                            i32imm:$cc)>;
+}
+
+def PSEUDO_LI32 : SPEX64PseudoInst<(outs GPR:$dst), (ins i32imm:$imm)>;
+def PSEUDO_LI64 : SPEX64PseudoInst<(outs GPR:$dst), (ins i64imm:$imm)>;
+
+def PSEUDO_ADD32rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_ADD64rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_ADD32ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_ADD64ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i64imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+
+def PSEUDO_SUB32rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_SUB64rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_SUB32ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_SUB64ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i64imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+
+def PSEUDO_AND32rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_AND64rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_AND32ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_AND64ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i64imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+
+def PSEUDO_OR32rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                     (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_OR64rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                     (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_OR32ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                     (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_OR64ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                     (ins GPR:$src, i64imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+
+def PSEUDO_XOR32rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_XOR64rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_XOR32ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_XOR64ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i64imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+
+def PSEUDO_SHL32ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_SHL64ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_SRL32ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_SRL64ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_SRA32ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_SRA64ri : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, i32imm:$imm)> {
+  let Constraints = "$dst = $src";
+}
+
+def PSEUDO_LDZ32 : SPEX64PseudoInst<(outs GPR:$dst),
+                                    (ins GPR:$base, i32imm:$off)>;
+def PSEUDO_LDZ64 : SPEX64PseudoInst<(outs GPR:$dst),
+                                    (ins GPR:$base, i32imm:$off)>;
+def PSEUDO_ST32 : SPEX64PseudoInst<(outs),
+                                   (ins GPR:$val, GPR:$base, i32imm:$off)>;
+def PSEUDO_ST64 : SPEX64PseudoInst<(outs),
+                                   (ins GPR:$val, GPR:$base, i32imm:$off)>;
+
+def : Pat<(i32 imm:$imm), (PSEUDO_LI32 imm:$imm)>;
+def : Pat<(i64 imm:$imm), (PSEUDO_LI64 imm:$imm)>;
+
+def : Pat<(add i32:$lhs, i32:$rhs),
+          (PSEUDO_ADD32rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(add i64:$lhs, i64:$rhs),
+          (PSEUDO_ADD64rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(add i32:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_ADD32ri GPR:$lhs, imm:$imm)>;
+def : Pat<(add i64:$lhs, SPEX64Imm64Pat:$imm),
+          (PSEUDO_ADD64ri GPR:$lhs, imm:$imm)>;
+
+def : Pat<(sub i32:$lhs, i32:$rhs),
+          (PSEUDO_SUB32rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(sub i64:$lhs, i64:$rhs),
+          (PSEUDO_SUB64rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(sub i32:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_SUB32ri GPR:$lhs, imm:$imm)>;
+def : Pat<(sub i64:$lhs, SPEX64Imm64Pat:$imm),
+          (PSEUDO_SUB64ri GPR:$lhs, imm:$imm)>;
+
+def : Pat<(and i32:$lhs, i32:$rhs),
+          (PSEUDO_AND32rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(and i64:$lhs, i64:$rhs),
+          (PSEUDO_AND64rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(and i32:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_AND32ri GPR:$lhs, imm:$imm)>;
+def : Pat<(and i64:$lhs, SPEX64Imm64Pat:$imm),
+          (PSEUDO_AND64ri GPR:$lhs, imm:$imm)>;
+
+def : Pat<(or i32:$lhs, i32:$rhs),
+          (PSEUDO_OR32rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(or i64:$lhs, i64:$rhs),
+          (PSEUDO_OR64rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(or i32:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_OR32ri GPR:$lhs, imm:$imm)>;
+def : Pat<(or i64:$lhs, SPEX64Imm64Pat:$imm),
+          (PSEUDO_OR64ri GPR:$lhs, imm:$imm)>;
+
+def : Pat<(xor i32:$lhs, i32:$rhs),
+          (PSEUDO_XOR32rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(xor i64:$lhs, i64:$rhs),
+          (PSEUDO_XOR64rr GPR:$lhs, GPR:$rhs)>;
+def : Pat<(xor i32:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_XOR32ri GPR:$lhs, imm:$imm)>;
+def : Pat<(xor i64:$lhs, SPEX64Imm64Pat:$imm),
+          (PSEUDO_XOR64ri GPR:$lhs, imm:$imm)>;
+
+def : Pat<(shl i32:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_SHL32ri GPR:$lhs, imm:$imm)>;
+def : Pat<(shl i64:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_SHL64ri GPR:$lhs, imm:$imm)>;
+def : Pat<(srl i32:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_SRL32ri GPR:$lhs, imm:$imm)>;
+def : Pat<(srl i64:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_SRL64ri GPR:$lhs, imm:$imm)>;
+def : Pat<(sra i32:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_SRA32ri GPR:$lhs, imm:$imm)>;
+def : Pat<(sra i64:$lhs, SPEX64Imm32Pat:$imm),
+          (PSEUDO_SRA64ri GPR:$lhs, imm:$imm)>;
+
+def : Pat<(i32 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
+          (PSEUDO_LDZ32 GPR:$base, imm:$off)>;
+def : Pat<(i64 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
+          (PSEUDO_LDZ64 GPR:$base, imm:$off)>;
+def : Pat<(store i32:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),
+          (PSEUDO_ST32 GPR:$val, GPR:$base, imm:$off)>;
+def : Pat<(store i64:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),
+          (PSEUDO_ST64 GPR:$val, GPR:$base, imm:$off)>;
 
 defm : RemapAllTargetPseudoPointerOperands<GPR>;

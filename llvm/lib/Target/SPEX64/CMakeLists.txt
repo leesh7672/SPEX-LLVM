@@ -1,6 +1,7 @@
 set(LLVM_TARGET_DEFINITIONS SPEX64.td)
 
 tablegen(LLVM SPEX64GenInstrInfo.inc       -gen-instr-info)
+tablegen(LLVM SPEX64GenDAGISel.inc         -gen-dag-isel)
 tablegen(LLVM SPEX64GenMCCodeEmitter.inc  -gen-emitter)
 tablegen(LLVM SPEX64GenRegisterInfo.inc    -gen-register-info)
 tablegen(LLVM SPEX64GenSubtargetInfo.inc   -gen-subtarget)
@@ -31,4 +32,3 @@ add_llvm_target(SPEX64CodeGen
 target_link_libraries(LLVMSPEX64CodeGen PRIVATE LLVMSPEX64Info LLVMSPEX64Desc LLVMSPEX64AsmParser)
 target_include_directories(LLVMSPEX64CodeGen PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(LLVMSPEX64Desc   PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-

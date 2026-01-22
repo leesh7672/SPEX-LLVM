@@ -562,6 +562,8 @@ let hasSideEffects = 1, isBranch = 1, isTerminator = 1, isBarrier = 1 in {
 
 def PSEUDO_LI32 : SPEX64PseudoInst<(outs GPR:$dst), (ins i32imm:$imm)>;
 def PSEUDO_LI64 : SPEX64PseudoInst<(outs GPR:$dst), (ins i64imm:$imm)>;
+def PSEUDO_LI16 : SPEX64PseudoInst<(outs GPR:$dst), (ins i16imm:$imm)>;
+def PSEUDO_LI8 : SPEX64PseudoInst<(outs GPR:$dst), (ins i8imm:$imm)>;
 
 def PSEUDO_ADD32rr : SPEX64PseudoInst<(outs GPR:$dst),
                                       (ins GPR:$src, GPR:$rhs)> {
@@ -677,13 +679,23 @@ def PSEUDO_LDZ32 : SPEX64PseudoInst<(outs GPR:$dst),
                                     (ins GPR:$base, i32imm:$off)>;
 def PSEUDO_LDZ64 : SPEX64PseudoInst<(outs GPR:$dst),
                                     (ins GPR:$base, i32imm:$off)>;
+def PSEUDO_LDZ16 : SPEX64PseudoInst<(outs GPR:$dst),
+                                    (ins GPR:$base, i32imm:$off)>;
+def PSEUDO_LDZ8 : SPEX64PseudoInst<(outs GPR:$dst),
+                                   (ins GPR:$base, i32imm:$off)>;
 def PSEUDO_ST32 : SPEX64PseudoInst<(outs),
                                    (ins GPR:$val, GPR:$base, i32imm:$off)>;
 def PSEUDO_ST64 : SPEX64PseudoInst<(outs),
                                    (ins GPR:$val, GPR:$base, i32imm:$off)>;
+def PSEUDO_ST16 : SPEX64PseudoInst<(outs),
+                                   (ins GPR:$val, GPR:$base, i32imm:$off)>;
+def PSEUDO_ST8 : SPEX64PseudoInst<(outs),
+                                  (ins GPR:$val, GPR:$base, i32imm:$off)>;
 
 def : Pat<(i32 imm:$imm), (PSEUDO_LI32 imm:$imm)>;
 def : Pat<(i64 imm:$imm), (PSEUDO_LI64 imm:$imm)>;
+def : Pat<(i16 imm:$imm), (PSEUDO_LI16 imm:$imm)>;
+def : Pat<(i8 imm:$imm), (PSEUDO_LI8 imm:$imm)>;
 
 def : Pat<(add i32:$lhs, i32:$rhs),
           (PSEUDO_ADD32rr GPR:$lhs, GPR:$rhs)>;
@@ -747,10 +759,18 @@ def : Pat<(i32 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
           (PSEUDO_LDZ32 GPR:$base, imm:$off)>;
 def : Pat<(i64 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
           (PSEUDO_LDZ64 GPR:$base, imm:$off)>;
+def : Pat<(i16 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
+          (PSEUDO_LDZ16 GPR:$base, imm:$off)>;
+def : Pat<(i8 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
+          (PSEUDO_LDZ8 GPR:$base, imm:$off)>;
 def : Pat<(store i32:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),
           (PSEUDO_ST32 GPR:$val, GPR:$base, imm:$off)>;
 def : Pat<(store i64:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),
           (PSEUDO_ST64 GPR:$val, GPR:$base, imm:$off)>;
+def : Pat<(store i16:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),
+          (PSEUDO_ST16 GPR:$val, GPR:$base, imm:$off)>;
+def : Pat<(store i8:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),
+          (PSEUDO_ST8 GPR:$val, GPR:$base, imm:$off)>;
 
 defm : RemapAllTargetPseudoPointerOperands<GPR>;
 

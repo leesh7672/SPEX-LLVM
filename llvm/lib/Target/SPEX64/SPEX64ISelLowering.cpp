@@ -14,11 +14,15 @@ SPEX64TargetLowering::SPEX64TargetLowering(const SPEX64TargetMachine &TM,
     : TargetLowering(TM, ST), ST(ST) {
   addRegisterClass(MVT::i64, &SPEX64::GPRRegClass);
   addRegisterClass(MVT::i32, &SPEX64::GPRRegClass);
+  addRegisterClass(MVT::i16, &SPEX64::GPRRegClass);
+  addRegisterClass(MVT::i8, &SPEX64::GPRRegClass);
 
   computeRegisterProperties(ST.getRegisterInfo());
 
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
   setOperationAction(ISD::BR_CC, MVT::i64, Custom);
+  setOperationAction(ISD::Constant, MVT::i8, Promote);
+  setOperationAction(ISD::Constant, MVT::i16, Promote);
 
   setOperationAction(ISD::BRCOND, MVT::Other, Expand);
   setOperationAction(ISD::SETCC, MVT::i32, Expand);

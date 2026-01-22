@@ -80,6 +80,22 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   DebugLoc DL = MI.getDebugLoc();
 
   switch (MI.getOpcode()) {
+  case SPEX64::PSEUDO_LI8: {
+    Register Dst = MI.getOperand(0).getReg();
+    int64_t Imm = MI.getOperand(1).getImm();
+    BuildMI(MBB, I, DL, get(SPEX64::LILI8_32)).addImm(Imm);
+    BuildMI(MBB, I, DL, get(SPEX64::MOVMOV8_R), Dst);
+    MI.eraseFromParent();
+    return true;
+  }
+  case SPEX64::PSEUDO_LI16: {
+    Register Dst = MI.getOperand(0).getReg();
+    int64_t Imm = MI.getOperand(1).getImm();
+    BuildMI(MBB, I, DL, get(SPEX64::LILI16_32)).addImm(Imm);
+    BuildMI(MBB, I, DL, get(SPEX64::MOVMOV16_R), Dst);
+    MI.eraseFromParent();
+    return true;
+  }
   case SPEX64::PSEUDO_LI32: {
     Register Dst = MI.getOperand(0).getReg();
     int64_t Imm = MI.getOperand(1).getImm();
@@ -269,43 +285,65 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     MI.eraseFromParent();
     return true;
   }
+  case SPEX64::PSEUDO_LDZ8:
+  case SPEX64::PSEUDO_LDZ16:
   case SPEX64::PSEUDO_LDZ32:
   case SPEX64::PSEUDO_LDZ64: {
     Register Dst = MI.getOperand(0).getReg();
     Register Base = MI.getOperand(1).getReg();
     int64_t Off = MI.getOperand(2).getImm();
     BuildMI(MBB, I, DL, get(SPEX64::MOVMOV64)).addReg(Base);
-    if (MI.getOpcode() == SPEX64::PSEUDO_LDZ32) {
-      unsigned LdOpc = Off == 0 ? SPEX64::LDZ_R32 : SPEX64::LDZ_R32_I32;
-      auto LdMI = BuildMI(MBB, I, DL, get(LdOpc), Dst);
-      if (Off != 0)
-        LdMI.addImm(Off);
-    } else {
-      unsigned LdOpc = Off == 0 ? SPEX64::LDZ_R64 : SPEX64::LDZ_R64_I32;
-      auto LdMI = BuildMI(MBB, I, DL, get(LdOpc), Dst);
-      if (Off != 0)
-        LdMI.addImm(Off);
+    unsigned LdOpc = 0;
+    switch (MI.getOpcode()) {
+    case SPEX64::PSEUDO_LDZ8:
+      LdOpc = Off == 0 ? SPEX64::LDZ_R8 : SPEX64::LDZ_R8_I32;
+      break;
+    case SPEX64::PSEUDO_LDZ16:
+      LdOpc = Off == 0 ? SPEX64::LDZ_R16 : SPEX64::LDZ_R16_I32;
+      break;
+    case SPEX64::PSEUDO_LDZ32:
+      LdOpc = Off == 0 ? SPEX64::LDZ_R32 : SPEX64::LDZ_R32_I32;
+      break;
+    case SPEX64::PSEUDO_LDZ64:
+      LdOpc = Off == 0 ? SPEX64::LDZ_R64 : SPEX64::LDZ_R64_I32;
+      break;
+    default:
+      llvm_unreachable("unexpected LDZ pseudo");
     }
+    auto LdMI = BuildMI(MBB, I, DL, get(LdOpc), Dst);
+    if (Off != 0)
+      LdMI.addImm(Off);
     MI.eraseFromParent();
     return true;
   }
+  case SPEX64::PSEUDO_ST8:
+  case SPEX64::PSEUDO_ST16:
   case SPEX64::PSEUDO_ST32:
   case SPEX64::PSEUDO_ST64: {
     Register Val = MI.getOperand(0).getReg();
     Register Base = MI.getOperand(1).getReg();
     int64_t Off = MI.getOperand(2).getImm();
     BuildMI(MBB, I, DL, get(SPEX64::MOVMOV64)).addReg(Base);
-    if (MI.getOpcode() == SPEX64::PSEUDO_ST32) {
-      unsigned StOpc = Off == 0 ? SPEX64::ST_R32 : SPEX64::ST_R32_I32;
-      auto StMI = BuildMI(MBB, I, DL, get(StOpc)).addReg(Val);
-      if (Off != 0)
-        StMI.addImm(Off);
-    } else {
-      unsigned StOpc = Off == 0 ? SPEX64::ST_R64 : SPEX64::ST_R64_I32;
-      auto StMI = BuildMI(MBB, I, DL, get(StOpc)).addReg(Val);
-      if (Off != 0)
-        StMI.addImm(Off);
+    unsigned StOpc = 0;
+    switch (MI.getOpcode()) {
+    case SPEX64::PSEUDO_ST8:
+      StOpc = Off == 0 ? SPEX64::ST_R8 : SPEX64::ST_R8_I32;
+      break;
+    case SPEX64::PSEUDO_ST16:
+      StOpc = Off == 0 ? SPEX64::ST_R16 : SPEX64::ST_R16_I32;
+      break;
+    case SPEX64::PSEUDO_ST32:
+      StOpc = Off == 0 ? SPEX64::ST_R32 : SPEX64::ST_R32_I32;
+      break;
+    case SPEX64::PSEUDO_ST64:
+      StOpc = Off == 0 ? SPEX64::ST_R64 : SPEX64::ST_R64_I32;
+      break;
+    default:
+      llvm_unreachable("unexpected ST pseudo");
     }
+    auto StMI = BuildMI(MBB, I, DL, get(StOpc)).addReg(Val);
+    if (Off != 0)
+      StMI.addImm(Off);
     MI.eraseFromParent();
     return true;
   }

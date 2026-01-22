@@ -806,6 +806,13 @@ def : Pat<(sra i32:$lhs, SPEX64Imm32Pat:$imm),
 def : Pat<(sra i64:$lhs, SPEX64Imm32Pat:$imm),
           (PSEUDO_SRA64ri GPR:$lhs, imm:$imm)>;
 
+def : Pat<(i64 (anyext i8:$src)),
+          (PSEUDO_OR64ri GPR:$src, (i64 0))>;
+def : Pat<(i64 (anyext i16:$src)),
+          (PSEUDO_OR64ri GPR:$src, (i64 0))>;
+def : Pat<(i64 (anyext i32:$src)),
+          (PSEUDO_OR64ri GPR:$src, (i64 0))>;
+
 def : Pat<(i32 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
           (PSEUDO_LDZ32 GPR:$base, imm:$off)>;
 def : Pat<(i64 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
@@ -814,6 +821,12 @@ def : Pat<(i16 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
           (PSEUDO_LDZ16 GPR:$base, imm:$off)>;
 def : Pat<(i8 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
           (PSEUDO_LDZ8 GPR:$base, imm:$off)>;
+def : Pat<(i64 (zextloadi8 (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
+          (PSEUDO_LDZ8 GPR:$base, imm:$off)>;
+def : Pat<(i64 (zextloadi16 (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
+          (PSEUDO_LDZ16 GPR:$base, imm:$off)>;
+def : Pat<(i64 (zextloadi32 (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
+          (PSEUDO_LDZ32 GPR:$base, imm:$off)>;
 def : Pat<(store i32:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),
           (PSEUDO_ST32 GPR:$val, GPR:$base, imm:$off)>;
 def : Pat<(store i64:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),

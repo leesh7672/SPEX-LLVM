@@ -13,6 +13,7 @@
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
 #include "llvm/CodeGen/SelectionDAGNodes.h"
+#include "llvm/Pass.h"
 #include "llvm/Support/Debug.h"
 
 using namespace llvm;
@@ -35,8 +36,23 @@ public:
 
   bool SelectAddr(SDValue Addr, SDValue &Base, SDValue &Offset);
   void Select(SDNode *Node) override;
+
+#define GET_DAGISEL_DECL
+#include "SPEX64GenDAGISel.inc"
+};
+
+class SPEX64DAGToDAGISelLegacy : public SelectionDAGISelLegacy {
+public:
+  static char ID;
+  SPEX64DAGToDAGISelLegacy(SPEX64TargetMachine &TM)
+      : SelectionDAGISelLegacy(ID,
+                               std::make_unique<SPEX64DAGToDAGISel>(TM)) {}
 };
 } // end anonymous namespace
+
+char SPEX64DAGToDAGISelLegacy::ID = 0;
+
+INITIALIZE_PASS(SPEX64DAGToDAGISelLegacy, DEBUG_TYPE, PASS_NAME, false, false)
 
 #define GET_DAGISEL_BODY SPEX64DAGToDAGISel
 #include "SPEX64GenDAGISel.inc"
@@ -120,7 +136,7 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
 }
 
 FunctionPass *llvm::createSPEX64ISelDag(SPEX64TargetMachine &TM) {
-  return new SPEX64DAGToDAGISel(TM);
+  return new SPEX64DAGToDAGISelLegacy(TM);
 }
 
 #undef DEBUG_TYPE

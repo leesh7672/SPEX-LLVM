@@ -12,4 +12,9 @@
 #define GET_SUBTARGETINFO_ENUM
 #include "SPEX64GenSubtargetInfo.inc"
 
+namespace llvm {
+class PassRegistry;
+void initializeSPEX64DAGToDAGISelLegacyPass(PassRegistry &);
+} // namespace llvm
+
 #endif

@@ -104,30 +104,102 @@ def WFI     : SPEX64InstNoR6<"wfi", (outs), (ins), 0x00A, 0, 0b00, 0, 0>;
 def ILL     : SPEX64InstNoR6<"ill", (outs), (ins), 0x00B, 0, 0b00, 0, 0>;
 
 // bcc (absolute target, hyphenated condition)
-multiclass SPEX64_BCC_COND<string cond, bits<9> k9val> {
-  def BCC_#cond#_32 : SPEX64BCCInst<"bcc-"#cond#"\t$target", (outs),
-                                   (ins brtarget:$target), k9val, 0> {
-  }
-  def BCC_#cond#_64 : SPEX64BCCInst<"bcc-"#cond#"\t$target", (outs),
-                                   (ins brtarget:$target), k9val, 1> {
-  }
+def BCC_eq_32 : SPEX64BCCInst<"bcc-eq\t$target", (outs),
+                              (ins brtarget:$target), 0, 0> {
 }
-defm BCC_EQ  : SPEX64_BCC_COND<"eq",  0>;
-defm BCC_NE  : SPEX64_BCC_COND<"ne",  1>;
-defm BCC_LT  : SPEX64_BCC_COND<"lt",  2>;
-defm BCC_GE  : SPEX64_BCC_COND<"ge",  3>;
-defm BCC_LE  : SPEX64_BCC_COND<"le",  4>;
-defm BCC_GT  : SPEX64_BCC_COND<"gt",  5>;
-defm BCC_LTU : SPEX64_BCC_COND<"ltu", 6>;
-defm BCC_GEU : SPEX64_BCC_COND<"geu", 7>;
-defm BCC_LEU : SPEX64_BCC_COND<"leu", 8>;
-defm BCC_GTU : SPEX64_BCC_COND<"gtu", 9>;
-defm BCC_VS  : SPEX64_BCC_COND<"vs",  10>;
-defm BCC_VC  : SPEX64_BCC_COND<"vc",  11>;
-defm BCC_MI  : SPEX64_BCC_COND<"mi",  12>;
-defm BCC_PL  : SPEX64_BCC_COND<"pl",  13>;
-defm BCC_CS  : SPEX64_BCC_COND<"cs",  14>;
-defm BCC_CC  : SPEX64_BCC_COND<"cc",  15>;
+def BCC_eq_64 : SPEX64BCCInst<"bcc-eq\t$target", (outs),
+                              (ins brtarget:$target), 0, 1> {
+}
+def BCC_ne_32 : SPEX64BCCInst<"bcc-ne\t$target", (outs),
+                              (ins brtarget:$target), 1, 0> {
+}
+def BCC_ne_64 : SPEX64BCCInst<"bcc-ne\t$target", (outs),
+                              (ins brtarget:$target), 1, 1> {
+}
+def BCC_lt_32 : SPEX64BCCInst<"bcc-lt\t$target", (outs),
+                              (ins brtarget:$target), 2, 0> {
+}
+def BCC_lt_64 : SPEX64BCCInst<"bcc-lt\t$target", (outs),
+                              (ins brtarget:$target), 2, 1> {
+}
+def BCC_ge_32 : SPEX64BCCInst<"bcc-ge\t$target", (outs),
+                              (ins brtarget:$target), 3, 0> {
+}
+def BCC_ge_64 : SPEX64BCCInst<"bcc-ge\t$target", (outs),
+                              (ins brtarget:$target), 3, 1> {
+}
+def BCC_le_32 : SPEX64BCCInst<"bcc-le\t$target", (outs),
+                              (ins brtarget:$target), 4, 0> {
+}
+def BCC_le_64 : SPEX64BCCInst<"bcc-le\t$target", (outs),
+                              (ins brtarget:$target), 4, 1> {
+}
+def BCC_gt_32 : SPEX64BCCInst<"bcc-gt\t$target", (outs),
+                              (ins brtarget:$target), 5, 0> {
+}
+def BCC_gt_64 : SPEX64BCCInst<"bcc-gt\t$target", (outs),
+                              (ins brtarget:$target), 5, 1> {
+}
+def BCC_ltu_32 : SPEX64BCCInst<"bcc-ltu\t$target", (outs),
+                               (ins brtarget:$target), 6, 0> {
+}
+def BCC_ltu_64 : SPEX64BCCInst<"bcc-ltu\t$target", (outs),
+                               (ins brtarget:$target), 6, 1> {
+}
+def BCC_geu_32 : SPEX64BCCInst<"bcc-geu\t$target", (outs),
+                               (ins brtarget:$target), 7, 0> {
+}
+def BCC_geu_64 : SPEX64BCCInst<"bcc-geu\t$target", (outs),
+                               (ins brtarget:$target), 7, 1> {
+}
+def BCC_leu_32 : SPEX64BCCInst<"bcc-leu\t$target", (outs),
+                               (ins brtarget:$target), 8, 0> {
+}
+def BCC_leu_64 : SPEX64BCCInst<"bcc-leu\t$target", (outs),
+                               (ins brtarget:$target), 8, 1> {
+}
+def BCC_gtu_32 : SPEX64BCCInst<"bcc-gtu\t$target", (outs),
+                               (ins brtarget:$target), 9, 0> {
+}
+def BCC_gtu_64 : SPEX64BCCInst<"bcc-gtu\t$target", (outs),
+                               (ins brtarget:$target), 9, 1> {
+}
+def BCC_vs_32 : SPEX64BCCInst<"bcc-vs\t$target", (outs),
+                              (ins brtarget:$target), 10, 0> {
+}
+def BCC_vs_64 : SPEX64BCCInst<"bcc-vs\t$target", (outs),
+                              (ins brtarget:$target), 10, 1> {
+}
+def BCC_vc_32 : SPEX64BCCInst<"bcc-vc\t$target", (outs),
+                              (ins brtarget:$target), 11, 0> {
+}
+def BCC_vc_64 : SPEX64BCCInst<"bcc-vc\t$target", (outs),
+                              (ins brtarget:$target), 11, 1> {
+}
+def BCC_mi_32 : SPEX64BCCInst<"bcc-mi\t$target", (outs),
+                              (ins brtarget:$target), 12, 0> {
+}
+def BCC_mi_64 : SPEX64BCCInst<"bcc-mi\t$target", (outs),
+                              (ins brtarget:$target), 12, 1> {
+}
+def BCC_pl_32 : SPEX64BCCInst<"bcc-pl\t$target", (outs),
+                              (ins brtarget:$target), 13, 0> {
+}
+def BCC_pl_64 : SPEX64BCCInst<"bcc-pl\t$target", (outs),
+                              (ins brtarget:$target), 13, 1> {
+}
+def BCC_cs_32 : SPEX64BCCInst<"bcc-cs\t$target", (outs),
+                              (ins brtarget:$target), 14, 0> {
+}
+def BCC_cs_64 : SPEX64BCCInst<"bcc-cs\t$target", (outs),
+                              (ins brtarget:$target), 14, 1> {
+}
+def BCC_cc_32 : SPEX64BCCInst<"bcc-cc\t$target", (outs),
+                              (ins brtarget:$target), 15, 0> {
+}
+def BCC_cc_64 : SPEX64BCCInst<"bcc-cc\t$target", (outs),
+                              (ins brtarget:$target), 15, 1> {
+}
 
 // jmp / call / sp
 def JMP_R : SPEX64Inst<"jmp\t$r6", (outs), (ins GPR:$r6), 0x200, 0, 0b00, 0, 0>;
@@ -472,6 +544,7 @@ class SPEX64PseudoInst<dag outs, dag ins> : Instruction {
   let OutOperandList = outs;
   let InOperandList = ins;
   let AsmString = "";
+  let Namespace = "SPEX64";
   let isPseudo = 1;
   let isCodeGenOnly = 1;
   let hasNoSchedulingInfo = 1;

@@ -16,23 +16,31 @@ SPEX64InstrInfo::SPEX64InstrInfo(const TargetSubtargetInfo &STI)
 
 void SPEX64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator MI,
-                                  const DebugLoc &DL, MCRegister DestReg,
-                                  MCRegister SrcReg, bool KillSrc) const {
+                                  const DebugLoc &DL, Register DestReg,
+                                  Register SrcReg, bool KillSrc,
+                                  bool RenamableDest,
+                                  bool RenamableSrc) const {
   if (SPEX64::GPRRegClass.contains(DestReg, SrcReg)) {
     BuildMI(MBB, MI, DL, get(SPEX64::MOVMOV64))
-        .addReg(SrcReg, getKillRegState(KillSrc));
-    BuildMI(MBB, MI, DL, get(SPEX64::MOVMOV64_R), DestReg);
+        .addReg(SrcReg, getKillRegState(KillSrc) |
+                            getRenamableRegState(RenamableSrc));
+    BuildMI(MBB, MI, DL, get(SPEX64::MOVMOV64_R))
+        .addReg(DestReg,
+                RegState::Define | getRenamableRegState(RenamableDest));
     return;
   }
 
   if (DestReg == SPEX64::RX && SPEX64::GPRRegClass.contains(SrcReg)) {
     BuildMI(MBB, MI, DL, get(SPEX64::MOVMOV64))
-        .addReg(SrcReg, getKillRegState(KillSrc));
+        .addReg(SrcReg, getKillRegState(KillSrc) |
+                            getRenamableRegState(RenamableSrc));
     return;
   }
 
   if (SPEX64::GPRRegClass.contains(DestReg) && SrcReg == SPEX64::RX) {
-    BuildMI(MBB, MI, DL, get(SPEX64::MOVMOV64_R), DestReg);
+    BuildMI(MBB, MI, DL, get(SPEX64::MOVMOV64_R))
+        .addReg(DestReg,
+                RegState::Define | getRenamableRegState(RenamableDest));
     return;
   }
 
@@ -42,25 +50,25 @@ void SPEX64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 static unsigned getCondBranchOpcode(ISD::CondCode CC) {
   switch (CC) {
   case ISD::SETEQ:
-    return SPEX64::BCC_EQ_64;
+    return SPEX64::BCC_eq_64;
   case ISD::SETNE:
-    return SPEX64::BCC_NE_64;
+    return SPEX64::BCC_ne_64;
   case ISD::SETLT:
-    return SPEX64::BCC_LT_64;
+    return SPEX64::BCC_lt_64;
   case ISD::SETLE:
-    return SPEX64::BCC_LE_64;
+    return SPEX64::BCC_le_64;
   case ISD::SETGT:
-    return SPEX64::BCC_GT_64;
+    return SPEX64::BCC_gt_64;
   case ISD::SETGE:
-    return SPEX64::BCC_GE_64;
+    return SPEX64::BCC_ge_64;
   case ISD::SETULT:
-    return SPEX64::BCC_LTU_64;
+    return SPEX64::BCC_ltu_64;
   case ISD::SETULE:
-    return SPEX64::BCC_LEU_64;
+    return SPEX64::BCC_leu_64;
   case ISD::SETUGT:
-    return SPEX64::BCC_GTU_64;
+    return SPEX64::BCC_gtu_64;
   case ISD::SETUGE:
-    return SPEX64::BCC_GEU_64;
+    return SPEX64::BCC_geu_64;
   default:
     report_fatal_error("SPEX64: unsupported branch condition");
   }

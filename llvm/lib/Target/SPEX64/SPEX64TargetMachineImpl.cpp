@@ -33,5 +33,5 @@ public:
 } // namespace
 
 TargetPassConfig *SPEX64TargetMachine::createPassConfig(PassManagerBase &PM) {
-  return new TargetPassConfig(*this, PM);
+  return new SPEX64PassConfig(*this, PM);
 }

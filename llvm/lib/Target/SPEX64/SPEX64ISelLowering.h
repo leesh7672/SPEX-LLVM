@@ -11,6 +11,7 @@ class SPEX64Subtarget;
 namespace SPEX64ISD {
 enum NodeType : unsigned {
   FIRST_NUMBER = ISD::BUILTIN_OP_END,
+  CALL,
   RET,
   BR,
   BR_CC,

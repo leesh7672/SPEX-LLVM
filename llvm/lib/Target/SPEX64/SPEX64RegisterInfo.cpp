@@ -6,6 +6,9 @@
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/Support/ErrorHandling.h"
 
+#define GET_REGINFO_TARGET_DESC
+#include "SPEX64GenRegisterInfo.inc"
+
 using namespace llvm;
 
 SPEX64RegisterInfo::SPEX64RegisterInfo() : SPEX64GenRegisterInfo(/*RA*/ 0) {}

@@ -5,13 +5,14 @@
 #include "SPEX64InstrInfo.h"
 
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
-#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/TargetParser/Triple.h"
 
 #define GET_SUBTARGETINFO_HEADER
 #include "SPEX64GenSubtargetInfo.inc"
 
 namespace llvm {
+
+class SPEX64TargetMachine;
 
 class SPEX64Subtarget : public SPEX64GenSubtargetInfo {
 public:
@@ -24,7 +25,8 @@ private:
   SPEX64FrameLowering FrameLowering;
 
 public:
-  SPEX64Subtarget(const Triple &TT, StringRef CPU, StringRef FS);
+  SPEX64Subtarget(const Triple &TT, StringRef CPU, StringRef FS, SPEX64TargetMachine &TM);
+  ~SPEX64Subtarget() override;
 
   void ParseSubtargetFeatures(StringRef CPU, StringRef TuneCPU, StringRef FS);
 

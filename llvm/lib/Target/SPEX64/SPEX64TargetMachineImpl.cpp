@@ -17,7 +17,8 @@ SPEX64TargetMachine::SPEX64TargetMachine(const Target &T, const Triple &TT,
                                          std::optional<CodeModel::Model> CM,
                                          CodeGenOptLevel OL, bool JIT)
     : CodeGenTargetMachineImpl(T, SPEX64DataLayout, TT, CPU, FS, Options,
-                               RM.value(), CM.value(), OL),
+                               RM.value_or(Reloc::Static),
+                               getEffectiveCodeModel(CM, CodeModel::Small), OL),
       TLOF(std::unique_ptr<TargetLoweringObjectFileELF>()), Subtarget(TT, CPU, FS, *this) {}
 
 SPEX64TargetMachine::~SPEX64TargetMachine() = default;

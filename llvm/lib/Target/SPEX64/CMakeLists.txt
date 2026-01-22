@@ -8,6 +8,7 @@ tablegen(LLVM SPEX64GenSubtargetInfo.inc   -gen-subtarget)
 tablegen(LLVM SPEX64GenAsmMatcher.inc      -gen-asm-matcher)
 tablegen(LLVM SPEX64GenAsmWriter.inc       -gen-asm-writer)
 tablegen(LLVM SPEX64GenDisassemblerTables.inc -gen-disassembler)
+tablegen(LLVM SPEX64CallingConv.inc -gen-callingconv)
 
 add_public_tablegen_target(SPEX64CommonTableGen)
 add_llvm_component_group(SPEX64)

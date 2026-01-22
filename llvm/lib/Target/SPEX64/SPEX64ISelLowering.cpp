@@ -118,6 +118,17 @@ SDValue SPEX64TargetLowering::LowerBR_CC(SDValue Chain, ISD::CondCode CC,
                                          SDValue LHS, SDValue RHS,
                                          SDValue Dest, const SDLoc &DL,
                                          SelectionDAG &DAG) const {
+  auto ExtendToI64 = [&](SDValue V) -> SDValue {
+    if (V.getValueType() == MVT::i64)
+      return V;
+    bool IsSigned = ISD::isSignedIntSetCC(CC);
+    unsigned Opcode = IsSigned ? ISD::SIGN_EXTEND : ISD::ZERO_EXTEND;
+    return DAG.getNode(Opcode, DL, MVT::i64, V);
+  };
+
+  LHS = ExtendToI64(LHS);
+  RHS = ExtendToI64(RHS);
+
   SDValue CCVal = DAG.getCondCode(CC);
   return DAG.getNode(SPEX64ISD::BR_CC, DL, MVT::Other, Chain, LHS, RHS, CCVal,
                      Dest);

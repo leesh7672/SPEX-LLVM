@@ -3,7 +3,6 @@
 #include "SPEX64Subtarget.h"
 #include "SPEX64TargetMachine.h"
 #include "llvm/CodeGen/CallingConvLower.h"
-#include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/SelectionDAGNodes.h"
 #include "llvm/Support/ErrorHandling.h"
 

@@ -1,17 +1,16 @@
-//===-- SPEX64RegisterInfo.cpp - SPEX64 register information --*- C++ -*-===//
+//===-- SPEX64RegisterInfo.cpp - SPEX64 Register Information ---*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include "SPEX64RegisterInfo.h"
 #include "SPEX64.h"
-#include "SPEX64Subtarget.h"
+#include "SPEX64FrameLowering.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
-#include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/Support/ErrorHandling.h"
 
 #define GET_REGINFO_TARGET_DESC
@@ -19,65 +18,31 @@
 
 using namespace llvm;
 
-SPEX64RegisterInfo::SPEX64RegisterInfo() : SPEX64GenRegisterInfo(/*RA*/ 0) {}
+SPEX64RegisterInfo::SPEX64RegisterInfo() : SPEX64GenRegisterInfo(/*RA=*/0) {}
 
-static bool isInLaneWindow(unsigned Reg, SPEX64Subtarget::Lane L) {
-  const unsigned idx = Reg - SPEX64::R0;
-  if (idx > 63)
-    return false;
-  const unsigned base = static_cast<unsigned>(L) * 16;
-  return idx >= base && idx < base + 16;
+// Stack pointer selection.
+// For v1 hardware, registers are globally accessible across lanes.
+Register SPEX64RegisterInfo::getStackRegister(const MachineFunction &) const {
+  return SPEX64::R13; // canonical SP
 }
 
-Register SPEX64RegisterInfo::getStackRegister(const MachineFunction &MF) const {
-  const auto &ST = MF.getSubtarget<SPEX64Subtarget>();
-  switch (ST.getLane()) {
-  case SPEX64Subtarget::Lane0:
-    return SPEX64::R13;
-  case SPEX64Subtarget::Lane1:
-    return SPEX64::R29;
-  case SPEX64Subtarget::Lane2:
-    return SPEX64::R45;
-  case SPEX64Subtarget::Lane3:
-    return SPEX64::R61;
-  }
-  llvm_unreachable("bad lane");
-}
-
-BitVector SPEX64RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
-  BitVector Reserved(getNumRegs());
-  const auto &ST = MF.getSubtarget<SPEX64Subtarget>();
-
-  for (unsigned R = SPEX64::R0; R <= SPEX64::R63; ++R)
-    if (!isInLaneWindow(R, ST.getLane()))
-      Reserved.set(R);
-
-  Reserved.set(getStackRegister(MF));
-
-  switch (ST.getLane()) {
-  case SPEX64Subtarget::Lane0:
-    Reserved.set(SPEX64::R14);
-    Reserved.set(SPEX64::R15);
-    break;
-  case SPEX64Subtarget::Lane1:
-    Reserved.set(SPEX64::R30);
-    Reserved.set(SPEX64::R31);
-    break;
-  case SPEX64Subtarget::Lane2:
-    Reserved.set(SPEX64::R46);
-    Reserved.set(SPEX64::R47);
-    break;
-  case SPEX64Subtarget::Lane3:
-    Reserved.set(SPEX64::R62);
-    Reserved.set(SPEX64::R63);
-    break;
-  }
-
-  return Reserved;
-}
-
+// Frame pointer equals stack pointer.
 Register SPEX64RegisterInfo::getFrameRegister(const MachineFunction &MF) const {
   return getStackRegister(MF);
+}
+
+// Reserved registers.
+// NOTE:
+//  - RX is the accumulator and must remain allocatable.
+//  - No lane-based register reservation is applied.
+//  - Only SP is reserved here.
+BitVector SPEX64RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
+  BitVector Reserved(getNumRegs());
+
+  // Reserve stack pointer
+  Reserved.set(getStackRegister(MF));
+
+  return Reserved;
 }
 
 const MCPhysReg *
@@ -94,6 +59,7 @@ SPEX64RegisterInfo::getCallPreservedMask(const MachineFunction &,
 bool SPEX64RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
                                              int, unsigned FIOperandNum,
                                              RegScavenger *) const {
+
   MachineFunction &MF = *MI->getParent()->getParent();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
 
@@ -102,7 +68,9 @@ bool SPEX64RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
                    MI->getOperand(FIOperandNum + 1).getImm() +
                    MFI.getStackSize();
 
-  MI->getOperand(FIOperandNum).ChangeToRegister(getFrameRegister(MF), false);
+  MI->getOperand(FIOperandNum)
+      .ChangeToRegister(getFrameRegister(MF), /*isDef=*/false);
   MI->getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
+
   return false;
 }

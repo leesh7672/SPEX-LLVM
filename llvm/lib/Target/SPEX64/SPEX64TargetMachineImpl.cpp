@@ -1,5 +1,5 @@
 //===-- SPEX64TargetMachineImpl.cpp - SPEX64 target machine implementation --*-
-//C++ -*-===//
+// C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -53,7 +53,9 @@ public:
     return false;
   }
 
-  FunctionPass *createTargetRegisterAllocator(bool) override {
+  FunctionPass *createTargetRegisterAllocator(bool Optimized) override {
+    if (!Optimized)
+      return createFastRegisterAllocator();
     return createGreedyRegisterAllocator();
   }
   void addPreEmitPass() override { addPass(createSPEX64ExpandPseudoPass()); }

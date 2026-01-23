@@ -4,7 +4,6 @@
 
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/MachineInstr.h"
-#include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/Pass.h"
 
 using namespace llvm;
@@ -28,7 +27,6 @@ public:
       for (auto I = MBB.begin(), E = MBB.end(); I != E;) {
         MachineInstr &MI = *I++;
         if (TII.expandPostRAPseudo(MI)) {
-          MI.eraseFromParent();
           Changed = true;
         }
       }

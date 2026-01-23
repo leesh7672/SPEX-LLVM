@@ -369,19 +369,19 @@ defm LI : SPEX64_LI_SZ<"64", "64", 0b11>;
 // Binary ALU (reg + imm32 + imm64)
 multiclass SPEX64_ALU_SZ<bits<12> opc, string mn, string def_suf,
                          string asm_suf, bits<2> sz2> {
-  def NAME#def_suf#"_R" : SPEX64Inst<mn#asm_suf#"\t$r6", (outs),
+  def NAME#def_suf#"_R" : SPEX64Inst<mn#asm_suf#"\trx, $r6", (outs),
                                     (ins GPR:$r6),
                                     opc, 0, sz2, 0, 0> {
     let Uses = [RX];
     let Defs = [RX];
   }
-  def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
+  def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\trx, $imm", (outs),
                                       (ins SPEX64Imm32:$imm),
                                       opc, 0, sz2, 1, 0> {
     let Uses = [RX];
     let Defs = [RX];
   }
-  def NAME#def_suf#"_I64" : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
+  def NAME#def_suf#"_I64" : SPEX64InstNoR6<mn#asm_suf#"\trx, $imm", (outs),
                                       (ins SPEX64Imm64:$imm),
                                       opc, 0, sz2, 1, 1> {
     let Uses = [RX];
@@ -396,17 +396,17 @@ multiclass SPEX64_ALU<bits<12> opc, string mn> {
 }
 multiclass SPEX64_ALUFLAGS_SZ<bits<12> opc, string mn, string def_suf,
                               string asm_suf, bits<2> sz2> {
-  def NAME#def_suf#"_R" : SPEX64Inst<mn#asm_suf#"\t$r6", (outs),
+  def NAME#def_suf#"_R" : SPEX64Inst<mn#asm_suf#"\trx, $r6", (outs),
                                     (ins GPR:$r6),
                                     opc, 0, sz2, 0, 0> {
     let Uses = [RX];
   }
-  def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
+  def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\trx, $imm", (outs),
                                      (ins SPEX64Imm32:$imm),
                                      opc, 0, sz2, 1, 0> {
     let Uses = [RX];
   }
-  def NAME#def_suf#"_I64" : SPEX64InstNoR6<mn#asm_suf#"\t$imm", (outs),
+  def NAME#def_suf#"_I64" : SPEX64InstNoR6<mn#asm_suf#"\trx, $imm", (outs),
                                      (ins SPEX64Imm64:$imm),
                                      opc, 0, sz2, 1, 1> {
     let Uses = [RX];

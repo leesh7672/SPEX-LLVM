@@ -1,3 +1,11 @@
+//===-- SPEX64MCTargetDesc.h - SPEX64 MC target description --*- C++ -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
 #ifndef LLVM_LIB_TARGET_SPEX64_MCTARGETDESC_SPEX64MCTARGETDESC_H
 #define LLVM_LIB_TARGET_SPEX64_MCTARGETDESC_SPEX64MCTARGETDESC_H
 

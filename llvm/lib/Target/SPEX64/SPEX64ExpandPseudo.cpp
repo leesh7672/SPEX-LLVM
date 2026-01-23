@@ -28,7 +28,6 @@ public:
       for (auto I = MBB.begin(), E = MBB.end(); I != E;) {
         MachineInstr &MI = *I++;
         if (TII.expandPostRAPseudo(MI)) {
-          MI.eraseFromParent();
           Changed = true;
         }
       }

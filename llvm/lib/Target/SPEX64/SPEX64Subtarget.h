@@ -35,7 +35,8 @@ private:
   SPEX64TargetLowering TLInfo;
 
 public:
-  SPEX64Subtarget(const Triple &TT, StringRef CPU, StringRef FS, SPEX64TargetMachine &TM);
+  SPEX64Subtarget(const Triple &TT, StringRef CPU, StringRef FS,
+                  SPEX64TargetMachine &TM);
   ~SPEX64Subtarget() override;
 
   void ParseSubtargetFeatures(StringRef CPU, StringRef TuneCPU, StringRef FS);

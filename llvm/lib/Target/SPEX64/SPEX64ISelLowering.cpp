@@ -28,12 +28,7 @@ SPEX64TargetLowering::SPEX64TargetLowering(const SPEX64TargetMachine &TM,
   addRegisterClass(MVT::i32, &SPEX64::GPRRegClass);
   addRegisterClass(MVT::i16, &SPEX64::GPRRegClass);
   addRegisterClass(MVT::i8, &SPEX64::GPRRegClass);
-
-  addRegisterClass(MVT::i64, &SPEX64::ACCRegClass);
-  addRegisterClass(MVT::i32, &SPEX64::ACCRegClass);
-  addRegisterClass(MVT::i16, &SPEX64::ACCRegClass);
-  addRegisterClass(MVT::i8, &SPEX64::ACCRegClass);
-
+  
   computeRegisterProperties(ST.getRegisterInfo());
 
   setOperationAction(ISD::Constant, MVT::i8, Promote);
@@ -48,8 +43,8 @@ SPEX64TargetLowering::SPEX64TargetLowering(const SPEX64TargetMachine &TM,
   setOperationAction(ISD::SIGN_EXTEND, MVT::i64, Custom);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand); 
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand); 
-  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i32, Expand); 
-  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i64, Expand);
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i32, Custom); 
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i64, Custom);
   setOperationAction(ISD::ANY_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i16, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i32, Expand);
@@ -140,7 +135,37 @@ SDValue SPEX64TargetLowering::LowerOperation(SDValue Op,
     }
     break;
   }
-  case ISD::SIGN_EXTEND: {
+  
+  case ISD::SIGN_EXTEND_INREG: {
+    // sign_extend_inreg(x, i8/i16/i32) keeps the value type of x but asserts
+    // that only the low bits are significant and should be sign-extended.
+    //
+    // Lower it with shifts, same as a sign-extend from a narrow type:
+    // sext_inreg(x, SrcBits) = sra(shl(x, DstBits-SrcBits), DstBits-SrcBits)
+    SDValue X = Op.getOperand(0);
+    EVT DstVT = Op.getValueType();
+    if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
+      break;
+
+    auto *VTN = dyn_cast<VTSDNode>(Op.getOperand(1));
+    if (!VTN)
+      break;
+    EVT InRegVT = VTN->getVT();
+    unsigned DstBits = DstVT.getSizeInBits();
+    unsigned SrcBits = InRegVT.getSizeInBits();
+    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
+      break;
+
+    unsigned ShAmt = DstBits - SrcBits;
+    SDLoc DL(Op);
+    SDValue Sh = DAG.getNode(ISD::SHL, DL, DstVT, X,
+                             DAG.getConstant(ShAmt, DL, DstVT));
+    SDValue Sa = DAG.getNode(ISD::SRA, DL, DstVT, Sh,
+                             DAG.getConstant(ShAmt, DL, DstVT));
+    return Sa;
+  }
+
+case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();
     EVT SrcVT = Src.getValueType();

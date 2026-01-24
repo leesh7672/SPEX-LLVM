@@ -21,6 +21,11 @@ def RX : SPEX64Acc<"rx">;
 
 def LR : SPEX64Acc<"lr">;
 
+// Pseudo condition flags register (not directly addressable)
+def FLAGS : SPEX64Acc<"flags"> {
+  let isArtificial = 1;
+}
+
 def R0  : SPEX64Reg<"r0", 0>;
 def R1  : SPEX64Reg<"r1", 1>;
 def R2  : SPEX64Reg<"r2", 2>;
@@ -109,3 +114,7 @@ def ACC : RegisterClass<"SPEX64", [i64, i32, i16, i8], 64, (add RX)>;
 
 def CSR_SPEX64 : CalleeSavedRegs<(add R16, R17, R18, R19, R20, R21, R22, R23,
                                       R24, R25, R26, R27, R28, R29, R30, R31)>;
+
+def CCR : RegisterClass<"SPEX64", [i1], 1, (add FLAGS)> {
+  let isAllocatable = 0;
+}

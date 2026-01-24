@@ -26,8 +26,7 @@ class SPEX64DAGToDAGISel final : public SelectionDAGISel {
   const SPEX64Subtarget *Subtarget = nullptr;
 
 public:
-  explicit SPEX64DAGToDAGISel(SPEX64TargetMachine &TM)
-      : SelectionDAGISel(TM) {}
+  explicit SPEX64DAGToDAGISel(SPEX64TargetMachine &TM) : SelectionDAGISel(TM) {}
 
   bool runOnMachineFunction(MachineFunction &MF) override {
     Subtarget = &MF.getSubtarget<SPEX64Subtarget>();
@@ -46,8 +45,7 @@ class SPEX64DAGToDAGISelLegacy : public SelectionDAGISelLegacy {
 public:
   static char ID;
   SPEX64DAGToDAGISelLegacy(SPEX64TargetMachine &TM)
-      : SelectionDAGISelLegacy(ID,
-                               std::make_unique<SPEX64DAGToDAGISel>(TM)) {}
+      : SelectionDAGISelLegacy(ID, std::make_unique<SPEX64DAGToDAGISel>(TM)) {}
 };
 } // end anonymous namespace
 
@@ -90,7 +88,7 @@ bool SPEX64DAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base,
 }
 
 bool SPEX64DAGToDAGISel::SelectAddrRR(SDValue Addr, SDValue &Base,
-                                     SDValue &Index) {
+                                      SDValue &Index) {
   if (Addr.getOpcode() == ISD::ADD || Addr.getOpcode() == ISD::SUB) {
     SDValue LHS = Addr.getOperand(0);
     SDValue RHS = Addr.getOperand(1);
@@ -102,7 +100,6 @@ bool SPEX64DAGToDAGISel::SelectAddrRR(SDValue Addr, SDValue &Base,
   }
   return false;
 }
-
 
 void SPEX64DAGToDAGISel::Select(SDNode *Node) {
   if (Node->isMachineOpcode()) {
@@ -145,7 +142,7 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
 
   case SPEX64ISD::BR: {
     SDValue Chain = Node->getOperand(0);
-    SDValue Dest  = Node->getOperand(1); // BasicBlock
+    SDValue Dest = Node->getOperand(1); // BasicBlock
     SDValue Ops[] = {Dest, Chain};
     SDNode *Br = CurDAG->getMachineNode(SPEX64::JMP32, DL, MVT::Other, Ops);
     ReplaceNode(Node, Br);
@@ -153,25 +150,37 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
   }
   case SPEX64ISD::BR_CC: {
     SDValue Chain = Node->getOperand(0);
-    SDValue LHS   = Node->getOperand(1);
-    SDValue RHS   = Node->getOperand(2);
+    SDValue LHS = Node->getOperand(1);
+    SDValue RHS = Node->getOperand(2);
     auto CC = cast<CondCodeSDNode>(Node->getOperand(3))->get();
-    SDValue Dest  = Node->getOperand(4);
+    SDValue Dest = Node->getOperand(4);
+
+    auto PromoteToI32 = [&](SDValue V) -> SDValue {
+      EVT VT = V.getValueType();
+      if (VT == MVT::i8 || VT == MVT::i16)
+        return CurDAG->getNode(ISD::ANY_EXTEND, DL, MVT::i32, V);
+      return V;
+    };
+    LHS = PromoteToI32(LHS);
+    RHS = PromoteToI32(RHS);
 
     bool Is64 = (LHS.getValueType() == MVT::i64);
 
-    // mov{32,64} rx, LHS
+    // mov{32,64} rx, LHS  (Chain+Glue)
     unsigned MovOpc = Is64 ? SPEX64::MOVMOV64 : SPEX64::MOVMOV32;
-    SDNode *MovN = CurDAG->getMachineNode(MovOpc, DL, MVT::Glue, LHS);
-    SDValue MovGlue(MovN, 0);
+    SDVTList VTsCG = CurDAG->getVTList(MVT::Other, MVT::Glue);
+    SDNode *MovN = CurDAG->getMachineNode(MovOpc, DL, VTsCG, {Chain, LHS});
+    SDValue MovChain(MovN, 0);
+    SDValue MovGlue(MovN, 1);
 
-    // cmp{32,64} rx, RHS (reg or imm)
+    // cmp{32,64} rx, RHS  (Chain+Glue)
     unsigned CmpOpc = 0;
-    SmallVector<SDValue, 4> CmpOps;
+    SmallVector<SDValue, 6> CmpOps;
+    CmpOps.push_back(MovChain);
+
     if (auto *CN = dyn_cast<ConstantSDNode>(RHS)) {
       int64_t Imm = CN->getSExtValue();
       if (Is64) {
-        // Prefer I32 form when it fits.
         if (isInt<32>(Imm)) {
           CmpOpc = SPEX64::CMP64_I32;
           CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
@@ -180,7 +189,6 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
           CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i64));
         }
       } else {
-        // i32 compare
         CmpOpc = SPEX64::CMP32_I32;
         CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
       }
@@ -188,37 +196,51 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
       CmpOpc = Is64 ? SPEX64::CMP64_R : SPEX64::CMP32_R;
       CmpOps.push_back(RHS);
     }
-    CmpOps.push_back(MovGlue);
-    SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, MVT::Glue, CmpOps);
-    SDValue CmpGlue(CmpN, 0);
 
-    // Select BCC opcode based on condition code.
+    CmpOps.push_back(MovGlue);
+    SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, VTsCG, CmpOps);
+    SDValue CmpChain(CmpN, 0);
+    SDValue CmpGlue(CmpN, 1);
+
     unsigned BccOpc = 0;
     switch (CC) {
-    case ISD::SETEQ: BccOpc = Is64 ? SPEX64::BCC_eq_64 : SPEX64::BCC_eq_32; break;
-    case ISD::SETNE: BccOpc = Is64 ? SPEX64::BCC_ne_64 : SPEX64::BCC_ne_32; break;
+    case ISD::SETEQ:
+      BccOpc = Is64 ? SPEX64::BCC_eq_64 : SPEX64::BCC_eq_32;
+      break;
+    case ISD::SETNE:
+      BccOpc = Is64 ? SPEX64::BCC_ne_64 : SPEX64::BCC_ne_32;
+      break;
     case ISD::SETLT:
-    case ISD::SETULT: BccOpc = Is64 ? SPEX64::BCC_lt_64 : SPEX64::BCC_lt_32; break;
+    case ISD::SETULT:
+      BccOpc = Is64 ? SPEX64::BCC_lt_64 : SPEX64::BCC_lt_32;
+      break;
     case ISD::SETLE:
-    case ISD::SETULE: BccOpc = Is64 ? SPEX64::BCC_le_64 : SPEX64::BCC_le_32; break;
+    case ISD::SETULE:
+      BccOpc = Is64 ? SPEX64::BCC_le_64 : SPEX64::BCC_le_32;
+      break;
     case ISD::SETGT:
-    case ISD::SETUGT: BccOpc = Is64 ? SPEX64::BCC_gt_64 : SPEX64::BCC_gt_32; break;
+    case ISD::SETUGT:
+      BccOpc = Is64 ? SPEX64::BCC_gt_64 : SPEX64::BCC_gt_32;
+      break;
     case ISD::SETGE:
-    case ISD::SETUGE: BccOpc = Is64 ? SPEX64::BCC_ge_64 : SPEX64::BCC_ge_32; break;
+    case ISD::SETUGE:
+      BccOpc = Is64 ? SPEX64::BCC_ge_64 : SPEX64::BCC_ge_32;
+      break;
     default:
-      // Fallback: treat as !=
       BccOpc = Is64 ? SPEX64::BCC_ne_64 : SPEX64::BCC_ne_32;
       break;
     }
 
     SmallVector<SDValue, 4> BrOps;
+    BrOps.push_back(CmpChain);
     BrOps.push_back(Dest);
-    BrOps.push_back(Chain);
     BrOps.push_back(CmpGlue);
+
     SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);
     ReplaceNode(Node, BrN);
     return;
   }
+
   case SPEX64ISD::RET: {
     SDValue Chain = Node->getOperand(0);
     if (Node->getNumOperands() > 1) {

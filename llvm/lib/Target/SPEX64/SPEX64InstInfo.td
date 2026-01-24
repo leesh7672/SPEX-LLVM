@@ -113,6 +113,9 @@ class SPEX64BCCInst<string asmstr, dag outs, dag ins, bits<9> k9val,
                     bits<1> i64>
     : SPEX64K9InstNoR6<asmstr, outs, ins, 0x100, 0b0, 0b00, 1, i64> {
   let k9 = k9val;
+  let isBranch = 1;
+  let isTerminator = 1;
+  let Uses = [FLAGS];
 }
 
 def SPEX64InstrInfo : InstrInfo;
@@ -389,6 +392,7 @@ multiclass SPEX64_ALUFLAGS_SZ<bits<12> opc, string mn, string def_suf,
                                     (ins GPR:$r6),
                                     opc, 0, sz2, 0, 0> {
     let Uses = [RX];
+    let Defs = [FLAGS];
   }
   def NAME#def_suf#"_I32" : SPEX64InstNoR6<mn#asm_suf#"\trx, $imm", (outs),
                                      (ins SPEX64Imm32:$imm),

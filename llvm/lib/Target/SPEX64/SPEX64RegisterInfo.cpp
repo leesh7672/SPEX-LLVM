@@ -45,6 +45,7 @@ BitVector SPEX64RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
 
   // Reserve link register (return address)
   Reserved.set(SPEX64::LR);
+  Reserved.set(SPEX64::FLAGS);
 
   return Reserved;
 }

@@ -52,12 +52,10 @@ def SPEX64Imm9  : Operand<i32> {
 def SPEX64Imm32 : Operand<i32> {
   let ParserMatchClass = SPEX64Imm32AsmOperand;
   let DecoderMethod = "DecodeSPEX64Imm32";
-  let EncoderMethod = "getMachineOpValue";
 }
 def SPEX64Imm64 : Operand<i64> {
   let ParserMatchClass = SPEX64Imm64AsmOperand;
   let DecoderMethod = "DecodeSPEX64Imm64";
-  let EncoderMethod = "getMachineOpValue";
 }
 
 def brtarget : Operand<OtherVT> {
@@ -597,6 +595,7 @@ def LRD : SPEX64K9InstNoR6<"lrd\t$k9", (outs), (ins SPEX64Imm9:$k9),
 def SPEX64Imm32Pat : PatLeaf<(i32 imm)>;
 def SPEX64Imm64Pat : PatLeaf<(i64 imm)>;
 def SPEX64Addr : ComplexPattern<i64, 2, "SelectAddr", [add, sub, frameindex]>;
+def SPEX64AddrRR : ComplexPattern<i64, 2, "SelectAddrRR", [add, sub]>;
 
 class SPEX64PseudoInst<dag outs, dag ins> : Instruction {
   let OutOperandList = outs;
@@ -756,6 +755,32 @@ def PSEUDO_ST16 : SPEX64PseudoInst<(outs),
 def PSEUDO_ST8 : SPEX64PseudoInst<(outs),
                                   (ins GPR:$val, GPR:$base, i32imm:$off)>;
 
+def PSEUDO_LDZ32rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$base, GPR:$idx)>;
+def PSEUDO_LDZ64rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$base, GPR:$idx)>;
+def PSEUDO_LDZ16rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$base, GPR:$idx)>;
+def PSEUDO_LDZ8rr  : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$base, GPR:$idx)>;
+
+def PSEUDO_LDS32rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$base, GPR:$idx)>;
+def PSEUDO_LDS16rr : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$base, GPR:$idx)>;
+def PSEUDO_LDS8rr  : SPEX64PseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$base, GPR:$idx)>;
+
+def PSEUDO_ST32rr  : SPEX64PseudoInst<(outs),
+                                      (ins GPR:$val, GPR:$base, GPR:$idx)>;
+def PSEUDO_ST64rr  : SPEX64PseudoInst<(outs),
+                                      (ins GPR:$val, GPR:$base, GPR:$idx)>;
+def PSEUDO_ST16rr  : SPEX64PseudoInst<(outs),
+                                      (ins GPR:$val, GPR:$base, GPR:$idx)>;
+def PSEUDO_ST8rr   : SPEX64PseudoInst<(outs),
+                                      (ins GPR:$val, GPR:$base, GPR:$idx)>;
+
+
 def : Pat<(i32 imm:$imm), (PSEUDO_LI32 imm:$imm)>;
 def : Pat<(i64 imm:$imm), (PSEUDO_LI64 imm:$imm)>;
 def : Pat<(i16 imm:$imm), (PSEUDO_LI16 imm:$imm)>;
@@ -831,6 +856,71 @@ def : Pat<(i16 (trunc i64:$src)),
           (PSEUDO_OR64ri GPR:$src, (i64 0))>;
 def : Pat<(i32 (trunc i64:$src)),
           (PSEUDO_OR64ri GPR:$src, (i64 0))>;
+
+
+def : Pat<(i32 (load (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ32rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (load (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ64rr GPR:$base, GPR:$idx)>;
+def : Pat<(i16 (load (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ16rr GPR:$base, GPR:$idx)>;
+def : Pat<(i8 (load (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ8rr GPR:$base, GPR:$idx)>;
+
+def : Pat<(i32 (zext (i8 (load (SPEX64AddrRR i64:$base, i64:$idx))))),
+          (PSEUDO_LDZ8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (zext (i8 (load (SPEX64AddrRR i64:$base, i64:$idx))))),
+          (PSEUDO_LDZ8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i32 (zext (i16 (load (SPEX64AddrRR i64:$base, i64:$idx))))),
+          (PSEUDO_LDZ16rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (zext (i16 (load (SPEX64AddrRR i64:$base, i64:$idx))))),
+          (PSEUDO_LDZ16rr GPR:$base, GPR:$idx)>;
+def : Pat<(i32 (sext (i8 (load (SPEX64AddrRR i64:$base, i64:$idx))))),
+          (PSEUDO_LDS8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (sext (i8 (load (SPEX64AddrRR i64:$base, i64:$idx))))),
+          (PSEUDO_LDS8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i32 (sext (i16 (load (SPEX64AddrRR i64:$base, i64:$idx))))),
+          (PSEUDO_LDS16rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (sext (i16 (load (SPEX64AddrRR i64:$base, i64:$idx))))),
+          (PSEUDO_LDS16rr GPR:$base, GPR:$idx)>;
+
+def : Pat<(i64 (zextloadi8 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (zextloadi16 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ16rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (zextloadi32 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ32rr GPR:$base, GPR:$idx)>;
+def : Pat<(i32 (zextloadi8 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i32 (zextloadi16 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ16rr GPR:$base, GPR:$idx)>;
+
+def : Pat<(i64 (extloadi8 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (extloadi16 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ16rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (extloadi32 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ32rr GPR:$base, GPR:$idx)>;
+def : Pat<(i32 (extloadi8 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i32 (extloadi16 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDZ16rr GPR:$base, GPR:$idx)>;
+
+def : Pat<(i64 (sextloadi8 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDS8rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (sextloadi16 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDS16rr GPR:$base, GPR:$idx)>;
+def : Pat<(i64 (sextloadi32 (SPEX64AddrRR i64:$base, i64:$idx))),
+          (PSEUDO_LDS32rr GPR:$base, GPR:$idx)>;
+
+def : Pat<(store i32:$val, (SPEX64AddrRR i64:$base, i64:$idx)),
+          (PSEUDO_ST32rr GPR:$val, GPR:$base, GPR:$idx)>;
+def : Pat<(store i64:$val, (SPEX64AddrRR i64:$base, i64:$idx)),
+          (PSEUDO_ST64rr GPR:$val, GPR:$base, GPR:$idx)>;
+def : Pat<(store i16:$val, (SPEX64AddrRR i64:$base, i64:$idx)),
+          (PSEUDO_ST16rr GPR:$val, GPR:$base, GPR:$idx)>;
+def : Pat<(store i8:$val, (SPEX64AddrRR i64:$base, i64:$idx)),
+          (PSEUDO_ST8rr GPR:$val, GPR:$base, GPR:$idx)>;
 
 def : Pat<(i32 (load (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off))),
           (PSEUDO_LDZ32 GPR:$base, imm:$off)>;

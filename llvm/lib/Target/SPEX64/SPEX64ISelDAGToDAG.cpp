@@ -35,6 +35,7 @@ public:
   }
 
   bool SelectAddr(SDValue Addr, SDValue &Base, SDValue &Offset);
+  bool SelectAddrRR(SDValue Addr, SDValue &Base, SDValue &Index);
   void Select(SDNode *Node) override;
 
 #define GET_DAGISEL_DECL
@@ -87,6 +88,21 @@ bool SPEX64DAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base,
   Offset = CurDAG->getTargetConstant(0, DL, MVT::i32);
   return true;
 }
+
+bool SPEX64DAGToDAGISel::SelectAddrRR(SDValue Addr, SDValue &Base,
+                                     SDValue &Index) {
+  if (Addr.getOpcode() == ISD::ADD || Addr.getOpcode() == ISD::SUB) {
+    SDValue LHS = Addr.getOperand(0);
+    SDValue RHS = Addr.getOperand(1);
+    if (!isa<ConstantSDNode>(RHS)) {
+      Base = LHS;
+      Index = RHS;
+      return true;
+    }
+  }
+  return false;
+}
+
 
 void SPEX64DAGToDAGISel::Select(SDNode *Node) {
   if (Node->isMachineOpcode()) {

@@ -340,6 +340,30 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     MI.eraseFromParent();
     return true;
   }
+case SPEX64::PSEUDO_LDZ8rr:
+case SPEX64::PSEUDO_LDZ16rr:
+case SPEX64::PSEUDO_LDZ32rr:
+case SPEX64::PSEUDO_LDZ64rr: {
+  Register Dst = MI.getOperand(0).getReg();
+  Register Base = MI.getOperand(1).getReg();
+  Register Idx  = MI.getOperand(2).getReg();
+
+  BuildMI(MBB, I, DL, get(SPEX64::MOVMOV64)).addReg(Base);
+  BuildMI(MBB, I, DL, get(SPEX64::ADD64_R)).addReg(Idx);
+
+  unsigned LdOpc = 0;
+  switch (MI.getOpcode()) {
+  case SPEX64::PSEUDO_LDZ8rr:  LdOpc = SPEX64::LDZ_R8;  break;
+  case SPEX64::PSEUDO_LDZ16rr: LdOpc = SPEX64::LDZ_R16; break;
+  case SPEX64::PSEUDO_LDZ32rr: LdOpc = SPEX64::LDZ_R32; break;
+  case SPEX64::PSEUDO_LDZ64rr: LdOpc = SPEX64::LDZ_R64; break;
+  default: llvm_unreachable("Unexpected LDZrr pseudo");
+  }
+
+  BuildMI(MBB, I, DL, get(LdOpc)).addReg(Dst, RegState::Define);
+  MI.eraseFromParent();
+  return true;
+}
   case SPEX64::PSEUDO_LDZ8:
   case SPEX64::PSEUDO_LDZ16:
   case SPEX64::PSEUDO_LDZ32:
@@ -371,6 +395,28 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     MI.eraseFromParent();
     return true;
   }
+case SPEX64::PSEUDO_LDS8rr:
+case SPEX64::PSEUDO_LDS16rr:
+case SPEX64::PSEUDO_LDS32rr: {
+  Register Dst = MI.getOperand(0).getReg();
+  Register Base = MI.getOperand(1).getReg();
+  Register Idx  = MI.getOperand(2).getReg();
+
+  BuildMI(MBB, I, DL, get(SPEX64::MOVMOV64)).addReg(Base);
+  BuildMI(MBB, I, DL, get(SPEX64::ADD64_R)).addReg(Idx);
+
+  unsigned LdOpc = 0;
+  switch (MI.getOpcode()) {
+  case SPEX64::PSEUDO_LDS8rr:  LdOpc = SPEX64::LDS_R8;  break;
+  case SPEX64::PSEUDO_LDS16rr: LdOpc = SPEX64::LDS_R16; break;
+  case SPEX64::PSEUDO_LDS32rr: LdOpc = SPEX64::LDS_R32; break;
+  default: llvm_unreachable("Unexpected LDSrr pseudo");
+  }
+
+  BuildMI(MBB, I, DL, get(LdOpc)).addReg(Dst, RegState::Define);
+  MI.eraseFromParent();
+  return true;
+}
   case SPEX64::PSEUDO_LDS8:
   case SPEX64::PSEUDO_LDS16:
   case SPEX64::PSEUDO_LDS32: {
@@ -398,6 +444,30 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     MI.eraseFromParent();
     return true;
   }
+case SPEX64::PSEUDO_ST8rr:
+case SPEX64::PSEUDO_ST16rr:
+case SPEX64::PSEUDO_ST32rr:
+case SPEX64::PSEUDO_ST64rr: {
+  Register Val  = MI.getOperand(0).getReg();
+  Register Base = MI.getOperand(1).getReg();
+  Register Idx  = MI.getOperand(2).getReg();
+
+  BuildMI(MBB, I, DL, get(SPEX64::MOVMOV64)).addReg(Base);
+  BuildMI(MBB, I, DL, get(SPEX64::ADD64_R)).addReg(Idx);
+
+  unsigned StOpc = 0;
+  switch (MI.getOpcode()) {
+  case SPEX64::PSEUDO_ST8rr:  StOpc = SPEX64::ST8;  break;
+  case SPEX64::PSEUDO_ST16rr: StOpc = SPEX64::ST16; break;
+  case SPEX64::PSEUDO_ST32rr: StOpc = SPEX64::ST32; break;
+  case SPEX64::PSEUDO_ST64rr: StOpc = SPEX64::ST64; break;
+  default: llvm_unreachable("Unexpected STrr pseudo");
+  }
+
+  BuildMI(MBB, I, DL, get(StOpc)).addReg(Val);
+  MI.eraseFromParent();
+  return true;
+}
   case SPEX64::PSEUDO_ST8:
   case SPEX64::PSEUDO_ST16:
   case SPEX64::PSEUDO_ST32:

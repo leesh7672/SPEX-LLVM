@@ -28,7 +28,12 @@ SPEX64TargetLowering::SPEX64TargetLowering(const SPEX64TargetMachine &TM,
   addRegisterClass(MVT::i32, &SPEX64::GPRRegClass);
   addRegisterClass(MVT::i16, &SPEX64::GPRRegClass);
   addRegisterClass(MVT::i8, &SPEX64::GPRRegClass);
-  
+
+  addRegisterClass(MVT::i64, &SPEX64::ACCRegClass);
+  addRegisterClass(MVT::i32, &SPEX64::ACCRegClass);
+  addRegisterClass(MVT::i16, &SPEX64::ACCRegClass);
+  addRegisterClass(MVT::i8, &SPEX64::ACCRegClass);
+
   computeRegisterProperties(ST.getRegisterInfo());
 
   setOperationAction(ISD::Constant, MVT::i8, Promote);
@@ -41,10 +46,9 @@ SPEX64TargetLowering::SPEX64TargetLowering(const SPEX64TargetMachine &TM,
   setOperationAction(ISD::SIGN_EXTEND, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i32, Custom);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i64, Custom);
-  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand); 
-  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand); 
-  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i32, Custom); 
-  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i64, Custom);
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i32, Expand);
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i64, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i16, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i32, Expand);
@@ -135,316 +139,284 @@ SDValue SPEX64TargetLowering::LowerOperation(SDValue Op,
     }
     break;
   }
-  
-  case ISD::SIGN_EXTEND_INREG: {
-    // sign_extend_inreg(x, i8/i16/i32) keeps the value type of x but asserts
-    // that only the low bits are significant and should be sign-extended.
-    //
-    // Lower it with shifts, same as a sign-extend from a narrow type:
-    // sext_inreg(x, SrcBits) = sra(shl(x, DstBits-SrcBits), DstBits-SrcBits)
-    SDValue X = Op.getOperand(0);
-    EVT DstVT = Op.getValueType();
-    if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
-      break;
-
-    auto *VTN = dyn_cast<VTSDNode>(Op.getOperand(1));
-    if (!VTN)
-      break;
-    EVT InRegVT = VTN->getVT();
-    unsigned DstBits = DstVT.getSizeInBits();
-    unsigned SrcBits = InRegVT.getSizeInBits();
-    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
-      break;
-
-    unsigned ShAmt = DstBits - SrcBits;
-    SDLoc DL(Op);
-    SDValue Sh = DAG.getNode(ISD::SHL, DL, DstVT, X,
-                             DAG.getConstant(ShAmt, DL, DstVT));
-    SDValue Sa = DAG.getNode(ISD::SRA, DL, DstVT, Sh,
-                             DAG.getConstant(ShAmt, DL, DstVT));
-    return Sa;
-  }
-
-case ISD::SIGN_EXTEND: {
+  case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();
     EVT SrcVT = Src.getValueType();
-    // We only custom-lower i32/i64 sign-extends from smaller integer types.
+
+    // We custom-lower sign-extends that would otherwise create shift sequences
+    // (shl+sra) that SPEX64 cannot yet select.
     if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
       break;
+
     unsigned DstBits = DstVT.getSizeInBits();
     unsigned SrcBits = SrcVT.getSizeInBits();
     if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
       break;
 
-    // sext(x) = sra(shl(anyext(x), DstBits-SrcBits), DstBits-SrcBits)
-    unsigned ShAmt = DstBits - SrcBits;
     SDLoc DL(Op);
+
+    // Sign-extend without shifts:
+    //   x = (anyext(src) & ((1<<SrcBits)-1))
+    //   bias = 1<<(SrcBits-1)
+    //   sext(x) = (x ^ bias) - bias
+    // This works for two's complement and avoids needing SHL/SRA selection.
     SDValue X = DAG.getNode(ISD::ANY_EXTEND, DL, DstVT, Src);
-    SDValue Sh = DAG.getNode(ISD::SHL, DL, DstVT, X,
-                             DAG.getConstant(ShAmt, DL, DstVT));
-    SDValue Sa = DAG.getNode(ISD::SRA, DL, DstVT, Sh,
-                             DAG.getConstant(ShAmt, DL, DstVT));
-    return Sa;
-  }
 
-  case ISD::GlobalAddress: {
-    auto *GA = cast<GlobalAddressSDNode>(Op);
-    return DAG.getTargetGlobalAddress(GA->getGlobal(), SDLoc(Op),
-                                      Op.getValueType(), GA->getOffset());
-  }
+    APInt Mask(DstBits, 0);
+    Mask.setLowBits(SrcBits);
+    SDValue MaskC = DAG.getConstant(Mask, DL, DstVT);
+    X = DAG.getNode(ISD::AND, DL, DstVT, X, MaskC);
 
-  case ISD::ExternalSymbol: {
-    auto *ES = cast<ExternalSymbolSDNode>(Op);
-    return DAG.getTargetExternalSymbol(ES->getSymbol(), Op.getValueType(),
-                                       ES->getTargetFlags());
-  }
+    APInt Bias = APInt::getOneBitSet(DstBits, SrcBits - 1);
+    SDValue BiasC = DAG.getConstant(Bias, DL, DstVT);
 
-  default:
-    break;
+    SDValue Xor = DAG.getNode(ISD::XOR, DL, DstVT, X, BiasC);
+    SDValue Res = DAG.getNode(ISD::SUB, DL, DstVT, Xor, BiasC);
+    return Res;
   }
-  return SDValue();
+    return SDValue();
+  }
 }
 
-SDValue SPEX64TargetLowering::LowerFormalArguments(
-    SDValue Chain, CallingConv::ID CallConv, bool IsVarArg,
-    const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &DL,
-    SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals) const {
-  if (CallConv != CallingConv::C && CallConv != CallingConv::Fast)
-    report_fatal_error("SPEX64: unsupported calling convention");
-  if (IsVarArg)
-    report_fatal_error("SPEX64: variadic arguments not supported");
+  SDValue SPEX64TargetLowering::LowerFormalArguments(
+      SDValue Chain, CallingConv::ID CallConv, bool IsVarArg,
+      const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &DL,
+      SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals) const {
+    if (CallConv != CallingConv::C && CallConv != CallingConv::Fast)
+      report_fatal_error("SPEX64: unsupported calling convention");
+    if (IsVarArg)
+      report_fatal_error("SPEX64: variadic arguments not supported");
 
-  MachineFunction &MF = DAG.getMachineFunction();
-  MachineRegisterInfo &MRI = MF.getRegInfo();
+    MachineFunction &MF = DAG.getMachineFunction();
+    MachineRegisterInfo &MRI = MF.getRegInfo();
 
-  SmallVector<CCValAssign, 16> ArgLocs;
-  CCState CCInfo(CallConv, IsVarArg, MF, ArgLocs, *DAG.getContext());
-  CCInfo.AnalyzeFormalArguments(Ins, CC_SPEX64);
+    SmallVector<CCValAssign, 16> ArgLocs;
+    CCState CCInfo(CallConv, IsVarArg, MF, ArgLocs, *DAG.getContext());
+    CCInfo.AnalyzeFormalArguments(Ins, CC_SPEX64);
 
-  for (const CCValAssign &VA : ArgLocs) {
-    EVT RegVT = VA.getLocVT();
+    for (const CCValAssign &VA : ArgLocs) {
+      EVT RegVT = VA.getLocVT();
 
-    if (VA.isRegLoc()) {
-      Register VReg = MRI.createVirtualRegister(&SPEX64::GPRRegClass);
-      MRI.addLiveIn(VA.getLocReg(), VReg);
-      SDValue ArgValue = DAG.getCopyFromReg(Chain, DL, VReg, RegVT);
+      if (VA.isRegLoc()) {
+        Register VReg = MRI.createVirtualRegister(&SPEX64::GPRRegClass);
+        MRI.addLiveIn(VA.getLocReg(), VReg);
+        SDValue ArgValue = DAG.getCopyFromReg(Chain, DL, VReg, RegVT);
 
-      if (VA.getLocInfo() == CCValAssign::SExt)
-        ArgValue = DAG.getNode(ISD::AssertSext, DL, RegVT, ArgValue,
-                               DAG.getValueType(VA.getValVT()));
-      else if (VA.getLocInfo() == CCValAssign::ZExt)
-        ArgValue = DAG.getNode(ISD::AssertZext, DL, RegVT, ArgValue,
-                               DAG.getValueType(VA.getValVT()));
+        if (VA.getLocInfo() == CCValAssign::SExt)
+          ArgValue = DAG.getNode(ISD::AssertSext, DL, RegVT, ArgValue,
+                                 DAG.getValueType(VA.getValVT()));
+        else if (VA.getLocInfo() == CCValAssign::ZExt)
+          ArgValue = DAG.getNode(ISD::AssertZext, DL, RegVT, ArgValue,
+                                 DAG.getValueType(VA.getValVT()));
 
-      if (VA.getLocInfo() != CCValAssign::Full || RegVT != VA.getValVT())
-        ArgValue = DAG.getNode(ISD::TRUNCATE, DL, VA.getValVT(), ArgValue);
+        if (VA.getLocInfo() != CCValAssign::Full || RegVT != VA.getValVT())
+          ArgValue = DAG.getNode(ISD::TRUNCATE, DL, VA.getValVT(), ArgValue);
 
-      InVals.push_back(ArgValue);
-      continue;
+        InVals.push_back(ArgValue);
+        continue;
+      }
+
+      // Stack-passed argument: load from [SP + locmemoffset] at function entry.
+      MachineFrameInfo &MFI = MF.getFrameInfo();
+      int FI = MFI.CreateFixedObject(/*Size=*/8, VA.getLocMemOffset(),
+                                     /*IsImmutable=*/true);
+      SDValue FIN = DAG.getFrameIndex(FI, MVT::i64);
+      SDValue Ld = DAG.getLoad(RegVT, DL, Chain, FIN,
+                               MachinePointerInfo::getFixedStack(MF, FI));
+      InVals.push_back(Ld);
+      Chain = Ld.getValue(1);
     }
 
-    // Stack-passed argument: load from [SP + locmemoffset] at function entry.
-    MachineFrameInfo &MFI = MF.getFrameInfo();
-    int FI = MFI.CreateFixedObject(/*Size=*/8, VA.getLocMemOffset(),
-                                   /*IsImmutable=*/true);
-    SDValue FIN = DAG.getFrameIndex(FI, MVT::i64);
-    SDValue Ld = DAG.getLoad(RegVT, DL, Chain, FIN,
-                             MachinePointerInfo::getFixedStack(MF, FI));
-    InVals.push_back(Ld);
-    Chain = Ld.getValue(1);
-  }
-
-  return Chain;
-}
-
-SDValue
-SPEX64TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID, bool,
-                                  const SmallVectorImpl<ISD::OutputArg> &Outs,
-                                  const SmallVectorImpl<SDValue> &OutVals,
-                                  const SDLoc &DL, SelectionDAG &DAG) const {
-  if (Outs.size() > 1)
-    report_fatal_error("SPEX64: only one return value is supported");
-
-  if (!OutVals.empty()) {
-    SDValue RetVal = OutVals[0];
-    if (RetVal.getValueType() != MVT::i64)
-      RetVal = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i64, RetVal);
-    SDValue Glue;
-    Chain = DAG.getCopyToReg(Chain, DL, SPEX64::RX, RetVal, Glue);
-    Glue = Chain.getValue(1);
-    return DAG.getNode(SPEX64ISD::RET, DL, MVT::Other, Chain, Glue);
-  }
-
-  return DAG.getNode(SPEX64ISD::RET, DL, MVT::Other, Chain);
-}
-
-SDValue SPEX64TargetLowering::LowerBR_CC(SDValue Chain, ISD::CondCode CC,
-                                         SDValue LHS, SDValue RHS, SDValue Dest,
-                                         const SDLoc &DL,
-                                         SelectionDAG &DAG) const {
-  auto ExtendTo = [&](SDValue V, MVT VT) -> SDValue {
-    if (V.getValueType() == VT)
-      return V;
-    bool IsSigned = ISD::isSignedIntSetCC(CC);
-    unsigned Opcode = IsSigned ? ISD::SIGN_EXTEND : ISD::ZERO_EXTEND;
-    return DAG.getNode(Opcode, DL, VT, V);
-  };
-
-  MVT VT = (LHS.getValueType().getSizeInBits() <= 32 &&
-            RHS.getValueType().getSizeInBits() <= 32)
-               ? MVT::i32
-               : MVT::i64;
-  LHS = ExtendTo(LHS, VT);
-  RHS = ExtendTo(RHS, VT);
-
-  SDValue CCVal = DAG.getCondCode(CC);
-  return DAG.getNode(SPEX64ISD::BR_CC, DL, MVT::Other, Chain, LHS, RHS, CCVal,
-                     Dest);
-}
-
-SDValue SPEX64TargetLowering::LowerBR(SDValue Chain, SDValue Dest,
-                                      const SDLoc &DL,
-                                      SelectionDAG &DAG) const {
-  return DAG.getNode(SPEX64ISD::BR, DL, MVT::Other, Chain, Dest);
-}
-
-SDValue
-SPEX64TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
-                                SmallVectorImpl<SDValue> &InVals) const {
-  SelectionDAG &DAG = CLI.DAG;
-  SDLoc DL(CLI.DL);
-  SDValue Chain = CLI.Chain;
-  SDValue Callee = CLI.Callee;
-  CallingConv::ID CallConv = CLI.CallConv;
-
-  if (CLI.IsTailCall)
-    CLI.IsTailCall = false;
-
-  if (CallConv != CallingConv::C && CallConv != CallingConv::Fast)
-    report_fatal_error("SPEX64: unsupported calling convention");
-
-  if (CLI.IsVarArg)
-    report_fatal_error("SPEX64: variadic arguments not supported");
-
-  SmallVector<CCValAssign, 16> ArgLocs;
-  CCState CCInfo(CallConv, CLI.IsVarArg, DAG.getMachineFunction(), ArgLocs,
-                 *DAG.getContext());
-  CCInfo.AnalyzeCallOperands(CLI.Outs, CC_SPEX64);
-
-  unsigned NumBytes = CCInfo.getStackSize();
-  Chain = DAG.getCALLSEQ_START(Chain, NumBytes, 0, DL);
-
-  SmallVector<std::pair<unsigned, SDValue>, 4> RegsToPass;
-  for (unsigned I = 0, E = ArgLocs.size(); I != E; ++I) {
-    const CCValAssign &VA = ArgLocs[I];
-    SDValue Arg = CLI.OutVals[I];
-
-    switch (VA.getLocInfo()) {
-    case CCValAssign::Full:
-      break;
-    case CCValAssign::SExt:
-      Arg = DAG.getNode(ISD::SIGN_EXTEND, DL, VA.getLocVT(), Arg);
-      break;
-    case CCValAssign::ZExt:
-      Arg = DAG.getNode(ISD::ZERO_EXTEND, DL, VA.getLocVT(), Arg);
-      break;
-    case CCValAssign::AExt:
-      Arg = DAG.getNode(ISD::ANY_EXTEND, DL, VA.getLocVT(), Arg);
-      break;
-    default:
-      llvm_unreachable("SPEX64: unknown argument extension");
-    }
-
-    if (VA.isRegLoc()) {
-      RegsToPass.push_back({VA.getLocReg(), Arg});
-      continue;
-    }
-
-    // Stack argument: store to outgoing call frame at [SP + LocMemOffset].
-    SDValue SPReg = DAG.getRegister(SPEX64::R63, MVT::i64);
-    int64_t Off = VA.getLocMemOffset();
-    SDValue Ptr = DAG.getNode(ISD::ADD, DL, MVT::i64, SPReg,
-                              DAG.getConstant(Off, DL, MVT::i64));
-    Chain = DAG.getStore(Chain, DL, Arg, Ptr, MachinePointerInfo());
-    continue;
-  }
-
-  SDValue InGlue;
-  for (const auto &RegArg : RegsToPass) {
-    Chain = DAG.getCopyToReg(Chain, DL, RegArg.first, RegArg.second, InGlue);
-    InGlue = Chain.getValue(1);
-  }
-
-  SDValue Target;
-  switch (Callee.getOpcode()) {
-  case ISD::TargetGlobalAddress:
-    Target = Callee;
-    break;
-  case ISD::GlobalAddress: {
-    auto *GA = cast<GlobalAddressSDNode>(Callee);
-    Target = DAG.getTargetGlobalAddress(GA->getGlobal(), DL,
-                                        getPointerTy(DAG.getDataLayout()),
-                                        GA->getOffset(), GA->getTargetFlags());
-    break;
-  }
-  case ISD::ExternalSymbol: {
-    auto *ES = cast<ExternalSymbolSDNode>(Callee);
-    Target = DAG.getTargetExternalSymbol(ES->getSymbol(),
-                                         getPointerTy(DAG.getDataLayout()));
-    break;
-  }
-  default:
-    if (Callee.getValueType() != MVT::i64)
-      Target = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i64, Callee);
-    else
-      Target = Callee;
-    break;
-  }
-
-  SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);
-  SmallVector<SDValue, 8> Ops;
-  Ops.push_back(Chain);
-  Ops.push_back(Target);
-
-  const TargetRegisterInfo *TRI = ST.getRegisterInfo();
-  const uint32_t *Mask =
-      TRI->getCallPreservedMask(DAG.getMachineFunction(), CallConv);
-  assert(Mask && "SPEX64: missing call preserved mask");
-  Ops.push_back(DAG.getRegisterMask(Mask));
-
-  for (const auto &RegArg : RegsToPass)
-    Ops.push_back(DAG.getRegister(RegArg.first, RegArg.second.getValueType()));
-
-  if (InGlue.getNode())
-    Ops.push_back(InGlue);
-
-  Chain = DAG.getNode(SPEX64ISD::CALL, DL, NodeTys, Ops);
-  InGlue = Chain.getValue(1);
-
-  Chain = DAG.getCALLSEQ_END(Chain, NumBytes, 0, InGlue, DL);
-  InGlue = Chain.getValue(1);
-
-  SDValue ResultChain =
-      lowerCallResult(Chain, InGlue, DL, CLI.Ins, DAG, InVals);
-  return ResultChain;
-}
-
-SDValue SPEX64TargetLowering::lowerCallResult(
-    SDValue Chain, SDValue InGlue, const SDLoc &DL,
-    const SmallVectorImpl<ISD::InputArg> &Ins, SelectionDAG &DAG,
-    SmallVectorImpl<SDValue> &InVals) const {
-  if (Ins.empty())
     return Chain;
-  if (Ins.size() > 1)
-    report_fatal_error("SPEX64: multiple return values not supported");
+  }
 
-  SDValue Copy = DAG.getCopyFromReg(Chain, DL, SPEX64::RX, MVT::i64, InGlue);
-  Chain = Copy.getValue(1);
-  SDValue Val = Copy;
-  if (Ins[0].VT != MVT::i64)
-    Val = DAG.getNode(ISD::TRUNCATE, DL, Ins[0].VT, Val);
-  InVals.push_back(Val);
+  SDValue SPEX64TargetLowering::LowerReturn(
+      SDValue Chain, CallingConv::ID, bool,
+      const SmallVectorImpl<ISD::OutputArg> &Outs,
+      const SmallVectorImpl<SDValue> &OutVals, const SDLoc &DL,
+      SelectionDAG &DAG) const {
+    if (Outs.size() > 1)
+      report_fatal_error("SPEX64: only one return value is supported");
 
-  return Chain;
-}
+    if (!OutVals.empty()) {
+      SDValue RetVal = OutVals[0];
+      if (RetVal.getValueType() != MVT::i64)
+        RetVal = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i64, RetVal);
+      SDValue Glue;
+      Chain = DAG.getCopyToReg(Chain, DL, SPEX64::RX, RetVal, Glue);
+      Glue = Chain.getValue(1);
+      return DAG.getNode(SPEX64ISD::RET, DL, MVT::Other, Chain, Glue);
+    }
+
+    return DAG.getNode(SPEX64ISD::RET, DL, MVT::Other, Chain);
+  }
+
+  SDValue SPEX64TargetLowering::LowerBR_CC(
+      SDValue Chain, ISD::CondCode CC, SDValue LHS, SDValue RHS, SDValue Dest,
+      const SDLoc &DL, SelectionDAG &DAG) const {
+    auto ExtendTo = [&](SDValue V, MVT VT) -> SDValue {
+      if (V.getValueType() == VT)
+        return V;
+      bool IsSigned = ISD::isSignedIntSetCC(CC);
+      unsigned Opcode = IsSigned ? ISD::SIGN_EXTEND : ISD::ZERO_EXTEND;
+      return DAG.getNode(Opcode, DL, VT, V);
+    };
+
+    MVT VT = (LHS.getValueType().getSizeInBits() <= 32 &&
+              RHS.getValueType().getSizeInBits() <= 32)
+                 ? MVT::i32
+                 : MVT::i64;
+    LHS = ExtendTo(LHS, VT);
+    RHS = ExtendTo(RHS, VT);
+
+    SDValue CCVal = DAG.getCondCode(CC);
+    return DAG.getNode(SPEX64ISD::BR_CC, DL, MVT::Other, Chain, LHS, RHS, CCVal,
+                       Dest);
+  }
+
+  SDValue SPEX64TargetLowering::LowerBR(
+      SDValue Chain, SDValue Dest, const SDLoc &DL, SelectionDAG &DAG) const {
+    return DAG.getNode(SPEX64ISD::BR, DL, MVT::Other, Chain, Dest);
+  }
+
+  SDValue SPEX64TargetLowering::LowerCall(
+      TargetLowering::CallLoweringInfo & CLI, SmallVectorImpl<SDValue> & InVals)
+      const {
+    SelectionDAG &DAG = CLI.DAG;
+    SDLoc DL(CLI.DL);
+    SDValue Chain = CLI.Chain;
+    SDValue Callee = CLI.Callee;
+    CallingConv::ID CallConv = CLI.CallConv;
+
+    if (CLI.IsTailCall)
+      CLI.IsTailCall = false;
+
+    if (CallConv != CallingConv::C && CallConv != CallingConv::Fast)
+      report_fatal_error("SPEX64: unsupported calling convention");
+
+    if (CLI.IsVarArg)
+      report_fatal_error("SPEX64: variadic arguments not supported");
+
+    SmallVector<CCValAssign, 16> ArgLocs;
+    CCState CCInfo(CallConv, CLI.IsVarArg, DAG.getMachineFunction(), ArgLocs,
+                   *DAG.getContext());
+    CCInfo.AnalyzeCallOperands(CLI.Outs, CC_SPEX64);
+
+    unsigned NumBytes = CCInfo.getStackSize();
+    Chain = DAG.getCALLSEQ_START(Chain, NumBytes, 0, DL);
+
+    SmallVector<std::pair<unsigned, SDValue>, 4> RegsToPass;
+    for (unsigned I = 0, E = ArgLocs.size(); I != E; ++I) {
+      const CCValAssign &VA = ArgLocs[I];
+      SDValue Arg = CLI.OutVals[I];
+
+      switch (VA.getLocInfo()) {
+      case CCValAssign::Full:
+        break;
+      case CCValAssign::SExt:
+        Arg = DAG.getNode(ISD::SIGN_EXTEND, DL, VA.getLocVT(), Arg);
+        break;
+      case CCValAssign::ZExt:
+        Arg = DAG.getNode(ISD::ZERO_EXTEND, DL, VA.getLocVT(), Arg);
+        break;
+      case CCValAssign::AExt:
+        Arg = DAG.getNode(ISD::ANY_EXTEND, DL, VA.getLocVT(), Arg);
+        break;
+      default:
+        llvm_unreachable("SPEX64: unknown argument extension");
+      }
+
+      if (VA.isRegLoc()) {
+        RegsToPass.push_back({VA.getLocReg(), Arg});
+        continue;
+      }
+
+      // Stack argument: store to outgoing call frame at [SP + LocMemOffset].
+      SDValue SPReg = DAG.getRegister(SPEX64::R63, MVT::i64);
+      int64_t Off = VA.getLocMemOffset();
+      SDValue Ptr = DAG.getNode(ISD::ADD, DL, MVT::i64, SPReg,
+                                DAG.getConstant(Off, DL, MVT::i64));
+      Chain = DAG.getStore(Chain, DL, Arg, Ptr, MachinePointerInfo());
+      continue;
+    }
+
+    SDValue InGlue;
+    for (const auto &RegArg : RegsToPass) {
+      Chain = DAG.getCopyToReg(Chain, DL, RegArg.first, RegArg.second, InGlue);
+      InGlue = Chain.getValue(1);
+    }
+
+    SDValue Target;
+    switch (Callee.getOpcode()) {
+    case ISD::TargetGlobalAddress:
+      Target = Callee;
+      break;
+    case ISD::GlobalAddress: {
+      auto *GA = cast<GlobalAddressSDNode>(Callee);
+      Target = DAG.getTargetGlobalAddress(
+          GA->getGlobal(), DL, getPointerTy(DAG.getDataLayout()),
+          GA->getOffset(), GA->getTargetFlags());
+      break;
+    }
+    case ISD::ExternalSymbol: {
+      auto *ES = cast<ExternalSymbolSDNode>(Callee);
+      Target = DAG.getTargetExternalSymbol(ES->getSymbol(),
+                                           getPointerTy(DAG.getDataLayout()));
+      break;
+    }
+    default:
+      if (Callee.getValueType() != MVT::i64)
+        Target = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i64, Callee);
+      else
+        Target = Callee;
+      break;
+    }
+
+    SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);
+    SmallVector<SDValue, 8> Ops;
+    Ops.push_back(Chain);
+    Ops.push_back(Target);
+
+    const TargetRegisterInfo *TRI = ST.getRegisterInfo();
+    const uint32_t *Mask =
+        TRI->getCallPreservedMask(DAG.getMachineFunction(), CallConv);
+    assert(Mask && "SPEX64: missing call preserved mask");
+    Ops.push_back(DAG.getRegisterMask(Mask));
+
+    for (const auto &RegArg : RegsToPass)
+      Ops.push_back(
+          DAG.getRegister(RegArg.first, RegArg.second.getValueType()));
+
+    if (InGlue.getNode())
+      Ops.push_back(InGlue);
+
+    Chain = DAG.getNode(SPEX64ISD::CALL, DL, NodeTys, Ops);
+    InGlue = Chain.getValue(1);
+
+    Chain = DAG.getCALLSEQ_END(Chain, NumBytes, 0, InGlue, DL);
+    InGlue = Chain.getValue(1);
+
+    SDValue ResultChain =
+        lowerCallResult(Chain, InGlue, DL, CLI.Ins, DAG, InVals);
+    return ResultChain;
+  }
+
+  SDValue SPEX64TargetLowering::lowerCallResult(
+      SDValue Chain, SDValue InGlue, const SDLoc &DL,
+      const SmallVectorImpl<ISD::InputArg> &Ins, SelectionDAG &DAG,
+      SmallVectorImpl<SDValue> &InVals) const {
+    if (Ins.empty())
+      return Chain;
+    if (Ins.size() > 1)
+      report_fatal_error("SPEX64: multiple return values not supported");
+
+    SDValue Copy = DAG.getCopyFromReg(Chain, DL, SPEX64::RX, MVT::i64, InGlue);
+    Chain = Copy.getValue(1);
+    SDValue Val = Copy;
+    if (Ins[0].VT != MVT::i64)
+      Val = DAG.getNode(ISD::TRUNCATE, DL, Ins[0].VT, Val);
+    InVals.push_back(Val);
+
+    return Chain;
+  }

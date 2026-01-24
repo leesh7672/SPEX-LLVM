@@ -148,159 +148,91 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
     ReplaceNode(Node, Br);
     return;
   }
-
   case SPEX64ISD::BR_CC: {
-    SDLoc DL(Node);
-
     SDValue Chain = Node->getOperand(0);
     SDValue LHS = Node->getOperand(1);
     SDValue RHS = Node->getOperand(2);
     auto CC = cast<CondCodeSDNode>(Node->getOperand(3))->get();
     SDValue Dest = Node->getOperand(4);
 
-    auto PickSZ2FromVT = [](EVT VT) -> unsigned {
-      if (VT == MVT::i8)
-        return 0b00;
-      if (VT == MVT::i16)
-        return 0b01;
-      if (VT == MVT::i32)
-        return 0b10;
-      return 0b11; // i64 default
+    auto PromoteToI32 = [&](SDValue V) -> SDValue {
+      EVT VT = V.getValueType();
+      if (VT == MVT::i8 || VT == MVT::i16)
+        return CurDAG->getNode(ISD::ANY_EXTEND, DL, MVT::i32, V);
+      return V;
     };
+    LHS = PromoteToI32(LHS);
+    RHS = PromoteToI32(RHS);
 
-    EVT CmpVT = LHS.getValueType();
-    if (LHS.getOpcode() == ISD::SIGN_EXTEND_INREG) {
-      if (auto *VTN = dyn_cast<VTSDNode>(LHS.getOperand(1))) {
-        CmpVT = VTN->getVT();
-      }
-    }
+    bool Is64 = (LHS.getValueType() == MVT::i64);
 
-    const unsigned SZ2 = PickSZ2FromVT(CmpVT);
-    const bool Is64Imm = (SZ2 == 0b11);
+    // mov{32,64} rx, LHS  (Chain+Glue)
+    unsigned MovOpc = Is64 ? SPEX64::MOVMOV64 : SPEX64::MOVMOV32;
+    SDVTList VTsCG = CurDAG->getVTList(MVT::Other, MVT::Glue);
+    SDNode *MovN = CurDAG->getMachineNode(MovOpc, DL, VTsCG, {Chain, LHS});
+    SDValue MovChain(MovN, 0);
+    SDValue MovGlue(MovN, 1);
 
-    unsigned MovOpc = 0;
-    switch (SZ2) {
-    case 0b00:
-      MovOpc = SPEX64::MOVMOV8;
-      break;
-    case 0b01:
-      MovOpc = SPEX64::MOVMOV16;
-      break;
-    case 0b10:
-      MovOpc = SPEX64::MOVMOV32;
-      break;
-    case 0b11:
-      MovOpc = SPEX64::MOVMOV64;
-      break;
-    }
-
-    SDNode *MovN = CurDAG->getMachineNode(MovOpc, DL, MVT::Glue, LHS);
-    SDValue MovGlue(MovN, 0);
-
+    // cmp{32,64} rx, RHS  (Chain+Glue)
     unsigned CmpOpc = 0;
-    SmallVector<SDValue, 4> CmpOps;
-
-    auto PickCmpROpc = [&](unsigned sz2) -> unsigned {
-      switch (sz2) {
-      case 0b00:
-        return SPEX64::CMP8_R;
-      case 0b01:
-        return SPEX64::CMP16_R;
-      case 0b10:
-        return SPEX64::CMP32_R;
-      default:
-        return SPEX64::CMP64_R;
-      }
-    };
-    auto PickCmpI32Opc = [&](unsigned sz2) -> unsigned {
-      switch (sz2) {
-      case 0b00:
-        return SPEX64::CMP8_I32;
-      case 0b01:
-        return SPEX64::CMP16_I32;
-      case 0b10:
-        return SPEX64::CMP32_I32;
-      default:
-        return SPEX64::CMP64_I32;
-      }
-    };
-    auto PickCmpI64Opc = [&](unsigned sz2) -> unsigned {
-      switch (sz2) {
-      case 0b00:
-        return SPEX64::CMP8_I64;
-      case 0b01:
-        return SPEX64::CMP16_I64;
-      case 0b10:
-        return SPEX64::CMP32_I64;
-      default:
-        return SPEX64::CMP64_I64;
-      }
-    };
+    SmallVector<SDValue, 6> CmpOps;
+    CmpOps.push_back(MovChain);
 
     if (auto *CN = dyn_cast<ConstantSDNode>(RHS)) {
       int64_t Imm = CN->getSExtValue();
-      if (isInt<32>(Imm)) {
-        CmpOpc = PickCmpI32Opc(SZ2);
-        CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
+      if (Is64) {
+        if (isInt<32>(Imm)) {
+          CmpOpc = SPEX64::CMP64_I32;
+          CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
+        } else {
+          CmpOpc = SPEX64::CMP64_I64;
+          CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i64));
+        }
       } else {
-        CmpOpc = PickCmpI64Opc(SZ2);
-        CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i64));
+        CmpOpc = SPEX64::CMP32_I32;
+        CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
       }
     } else {
-      CmpOpc = PickCmpROpc(SZ2);
+      CmpOpc = Is64 ? SPEX64::CMP64_R : SPEX64::CMP32_R;
       CmpOps.push_back(RHS);
     }
 
     CmpOps.push_back(MovGlue);
-    SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, MVT::Glue, CmpOps);
-    SDValue CmpGlue(CmpN, 0);
+    SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, VTsCG, CmpOps);
+    SDValue CmpChain(CmpN, 0);
+    SDValue CmpGlue(CmpN, 1);
 
     unsigned BccOpc = 0;
-    auto PickBcc = [&](unsigned Opc32, unsigned Opc64) -> unsigned {
-      return (SZ2 == 0b11) ? Opc64 : Opc32;
-    };
-
     switch (CC) {
     case ISD::SETEQ:
-      BccOpc = PickBcc(SPEX64::BCC_eq_32, SPEX64::BCC_eq_64);
+      BccOpc = Is64 ? SPEX64::BCC_eq_64 : SPEX64::BCC_eq_32;
       break;
     case ISD::SETNE:
-      BccOpc = PickBcc(SPEX64::BCC_ne_32, SPEX64::BCC_ne_64);
+      BccOpc = Is64 ? SPEX64::BCC_ne_64 : SPEX64::BCC_ne_32;
       break;
-
     case ISD::SETLT:
-      BccOpc = PickBcc(SPEX64::BCC_lt_32, SPEX64::BCC_lt_64);
+    case ISD::SETULT:
+      BccOpc = Is64 ? SPEX64::BCC_lt_64 : SPEX64::BCC_lt_32;
       break;
     case ISD::SETLE:
-      BccOpc = PickBcc(SPEX64::BCC_le_32, SPEX64::BCC_le_64);
+    case ISD::SETULE:
+      BccOpc = Is64 ? SPEX64::BCC_le_64 : SPEX64::BCC_le_32;
       break;
     case ISD::SETGT:
-      BccOpc = PickBcc(SPEX64::BCC_gt_32, SPEX64::BCC_gt_64);
+    case ISD::SETUGT:
+      BccOpc = Is64 ? SPEX64::BCC_gt_64 : SPEX64::BCC_gt_32;
       break;
     case ISD::SETGE:
-      BccOpc = PickBcc(SPEX64::BCC_ge_32, SPEX64::BCC_ge_64);
-      break;
-
-    case ISD::SETULT:
-      BccOpc = PickBcc(SPEX64::BCC_ltu_32, SPEX64::BCC_ltu_64);
-      break;
-    case ISD::SETULE:
-      BccOpc = PickBcc(SPEX64::BCC_leu_32, SPEX64::BCC_leu_64);
-      break;
-    case ISD::SETUGT:
-      BccOpc = PickBcc(SPEX64::BCC_gtu_32, SPEX64::BCC_gtu_64);
-      break;
     case ISD::SETUGE:
-      BccOpc = PickBcc(SPEX64::BCC_geu_32, SPEX64::BCC_geu_64);
+      BccOpc = Is64 ? SPEX64::BCC_ge_64 : SPEX64::BCC_ge_32;
       break;
-
     default:
-      BccOpc = PickBcc(SPEX64::BCC_ne_32, SPEX64::BCC_ne_64);
+      BccOpc = Is64 ? SPEX64::BCC_ne_64 : SPEX64::BCC_ne_32;
       break;
     }
 
-    SmallVector<SDValue, 3> BrOps;
-    BrOps.push_back(Chain);
+    SmallVector<SDValue, 4> BrOps;
+    BrOps.push_back(CmpChain);
     BrOps.push_back(Dest);
     BrOps.push_back(CmpGlue);
 

@@ -49,6 +49,12 @@ public:
   bool isToken() const override { return Kind == k_Token; }
   bool isReg() const override { return Kind == k_Reg; }
   bool isImm() const override { return Kind == k_Imm; }
+  bool isExpr() const {
+    // Symbolic immediates are represented as MCExpr (non-constant) while still
+    // using the k_Imm operand kind.
+    return isImm() && Imm && !isa<MCConstantExpr>(Imm);
+  }
+
   bool isMem() const override { return false; }
   StringRef getToken() const { return Tok; }
 

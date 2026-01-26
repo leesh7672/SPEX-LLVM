@@ -91,6 +91,7 @@ SPEX64TargetLowering::SPEX64TargetLowering(const SPEX64TargetMachine &TM,
 
   setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
   setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
+  setOperationAction(ISD::ConstantPool, MVT::i64, Custom);
 }
 
 const char *SPEX64TargetLowering::getTargetNodeName(unsigned Opcode) const {
@@ -177,6 +178,12 @@ SDValue SPEX64TargetLowering::LowerOperation(SDValue Op,
     auto *ES = cast<ExternalSymbolSDNode>(Op);
     return DAG.getTargetExternalSymbol(ES->getSymbol(), Op.getValueType(),
                                        ES->getTargetFlags());
+  }
+
+  case ISD::ConstantPool: {
+    auto *CP = cast<ConstantPoolSDNode>(Op);
+    return DAG.getTargetConstantPool(CP->getConstVal(), Op.getValueType(),
+                                     CP->getAlign(), CP->getOffset());
   }
 
   default:

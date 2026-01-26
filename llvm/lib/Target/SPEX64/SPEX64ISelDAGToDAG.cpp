@@ -123,6 +123,39 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
 
   switch (Node->getOpcode()) {
 
+  case ISD::Constant: {
+    EVT VT = Node->getValueType(0);
+    if (!VT.isInteger())
+      break;
+    unsigned Bits = VT.getSizeInBits();
+    unsigned Opc = 0;
+    MVT ImmVT = MVT::i32;
+    switch (Bits) {
+    case 8:
+      Opc = SPEX64::PSEUDO_LI8;
+      break;
+    case 16:
+      Opc = SPEX64::PSEUDO_LI16;
+      break;
+    case 32:
+      Opc = SPEX64::PSEUDO_LI32;
+      break;
+    case 64:
+      Opc = SPEX64::PSEUDO_LI64;
+      ImmVT = MVT::i64;
+      break;
+    default:
+      break;
+    }
+    if (!Opc)
+      break;
+    auto *CN = cast<ConstantSDNode>(Node);
+    SDValue Imm = CurDAG->getTargetConstant(CN->getSExtValue(), DL, ImmVT);
+    SDNode *Res = CurDAG->getMachineNode(Opc, DL, VT, Imm);
+    ReplaceNode(Node, Res);
+    return;
+  }
+
 case SPEX64ISD::SHL_I:
 case SPEX64ISD::SRL_I:
 case SPEX64ISD::SRA_I: {

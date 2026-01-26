@@ -10,6 +10,7 @@
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCELFObjectWriter.h"
 #include "llvm/MC/MCFixup.h"
+#include "llvm/MC/MCValue.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -37,9 +38,24 @@ public:
                   const MCValue &Target, uint8_t *Data, uint64_t,
                   bool) override {
     (void)Fragment;
-    (void)Fixup;
-    (void)Target;
-    (void)Data;
+
+    const MCFixupKindInfo &Info = getFixupKindInfo(Fixup.getKind());
+    if (Info.TargetSize == 0)
+      return;
+
+    uint64_t Value = static_cast<uint64_t>(Target.getConstant());
+    Value >>= Info.TargetOffset;
+
+    uint64_t Mask = Info.TargetSize == 64
+                        ? ~0ULL
+                        : ((1ULL << Info.TargetSize) - 1);
+    Value &= Mask;
+
+    unsigned Offset = Fixup.getOffset();
+    unsigned NumBytes = (Info.TargetSize + 7) / 8;
+    for (unsigned I = 0; I < NumBytes; ++I) {
+      Data[Offset + I] |= static_cast<uint8_t>(Value >> (I * 8));
+    }
   }
 
   bool writeNopData(raw_ostream &OS, uint64_t Count,

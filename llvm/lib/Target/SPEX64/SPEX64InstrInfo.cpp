@@ -139,9 +139,7 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case SPEX64::PSEUDO_LI8: {
     Register Dst = MI.getOperand(0).getReg();
     const MachineOperand &SrcOp = MI.getOperand(1);
-    if (!SrcOp.isImm() && !SrcOp.isGlobal() && !SrcOp.isSymbol() &&
-        !SrcOp.isCPI() && !SrcOp.isJTI() && !SrcOp.isMBB() &&
-        !SrcOp.isBlockAddress())
+    if (SrcOp.isReg())
       report_fatal_error("SPEX64: unsupported LI8 operand");
     BuildMI(MBB, I, DL, get(SPEX64::LILI8_32)).add(SrcOp);
     BuildMI(MBB, I, DL, get(SPEX64::MOVMOV8_R), Dst);
@@ -151,9 +149,7 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case SPEX64::PSEUDO_LI16: {
     Register Dst = MI.getOperand(0).getReg();
     const MachineOperand &SrcOp = MI.getOperand(1);
-    if (!SrcOp.isImm() && !SrcOp.isGlobal() && !SrcOp.isSymbol() &&
-        !SrcOp.isCPI() && !SrcOp.isJTI() && !SrcOp.isMBB() &&
-        !SrcOp.isBlockAddress())
+    if (SrcOp.isReg())
       report_fatal_error("SPEX64: unsupported LI16 operand");
     BuildMI(MBB, I, DL, get(SPEX64::LILI16_32)).add(SrcOp);
     BuildMI(MBB, I, DL, get(SPEX64::MOVMOV16_R), Dst);
@@ -163,9 +159,7 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   case SPEX64::PSEUDO_LI32: {
     Register Dst = MI.getOperand(0).getReg();
     const MachineOperand &SrcOp = MI.getOperand(1);
-    if (!SrcOp.isImm() && !SrcOp.isGlobal() && !SrcOp.isSymbol() &&
-        !SrcOp.isCPI() && !SrcOp.isJTI() && !SrcOp.isMBB() &&
-        !SrcOp.isBlockAddress())
+    if (SrcOp.isReg())
       report_fatal_error("SPEX64: unsupported LI32 operand");
     BuildMI(MBB, I, DL, get(SPEX64::LILI32_32)).add(SrcOp);
     BuildMI(MBB, I, DL, get(SPEX64::MOVMOV32_R), Dst);
@@ -180,9 +174,7 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       int64_t Imm = SrcOp.getImm();
       if (isInt<32>(Imm))
         LiOpc = SPEX64::LILI64_32;
-    } else if (!SrcOp.isGlobal() && !SrcOp.isSymbol() && !SrcOp.isCPI() &&
-               !SrcOp.isJTI() && !SrcOp.isMBB() &&
-               !SrcOp.isBlockAddress()) {
+    } else if (SrcOp.isReg()) {
       report_fatal_error("SPEX64: unsupported LI64 operand");
     }
     BuildMI(MBB, I, DL, get(LiOpc)).add(SrcOp);

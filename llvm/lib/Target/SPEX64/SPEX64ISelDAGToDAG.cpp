@@ -113,6 +113,34 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
   SDLoc DL(Node);
 
   switch (Node->getOpcode()) {
+
+case SPEX64ISD::SHL_I:
+case SPEX64ISD::SRL_I:
+case SPEX64ISD::SRA_I: {
+  EVT VT = Node->getValueType(0);
+  unsigned Bits = VT.getSizeInBits();
+  if (Bits != 32 && Bits != 64)
+    break;
+
+  unsigned Opcode = Node->getOpcode();
+  const unsigned PseudoOpc =
+      (Opcode == SPEX64ISD::SHL_I)
+          ? (Bits == 32 ? SPEX64::PSEUDO_SHL32ri : SPEX64::PSEUDO_SHL64ri)
+          : (Opcode == SPEX64ISD::SRL_I)
+                ? (Bits == 32 ? SPEX64::PSEUDO_SRL32ri : SPEX64::PSEUDO_SRL64ri)
+                : (Bits == 32 ? SPEX64::PSEUDO_SRA32ri : SPEX64::PSEUDO_SRA64ri);
+
+  auto *AmtC = dyn_cast<ConstantSDNode>(Node->getOperand(1));
+  if (!AmtC)
+    break;
+  SDValue Amt = CurDAG->getTargetConstant(AmtC->getZExtValue(), DL, MVT::i32);
+
+  SDNode *Res = CurDAG->getMachineNode(PseudoOpc, DL, VT,
+                                       Node->getOperand(0), Amt);
+  ReplaceNode(Node, Res);
+  return;
+}
+
   case SPEX64ISD::CALL: {
     SDValue Chain = Node->getOperand(0);
     SDValue Callee = Node->getOperand(1);
@@ -205,6 +233,50 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
     case ISD::SETUGT: BccOpc = Is64 ? SPEX64::BCC_gt_64 : SPEX64::BCC_gt_32; break;
     case ISD::SETGE:
     case ISD::SETUGE: BccOpc = Is64 ? SPEX64::BCC_ge_64 : SPEX64::BCC_ge_32; break;
+    case ISD::SIGN_EXTEND_INREG: {
+      SDLoc DL(Node);
+
+      EVT OutVT = Node->getValueType(0);
+      EVT InVT = cast<VTSDNode>(Node->getOperand(1))->getVT();
+
+      // We only handle the common integer cases here (e.g. i64 sext_inreg(..., i8)).
+      if (!OutVT.isSimple() || !InVT.isSimple() || !OutVT.isInteger() ||
+          !InVT.isInteger())
+        break;
+
+      unsigned OutBits = OutVT.getSimpleVT().getSizeInBits();
+      unsigned InBits  = InVT.getSimpleVT().getSizeInBits();
+      if (InBits >= OutBits)
+        break;
+
+      // SPEX64 shift instructions operate on the implicit accumulator RX with an
+      // immediate shift amount. Emit: RX = src; RX <<= shamt; RX sra= shamt;
+      // dst = RX;
+      unsigned ShAmt = OutBits - InBits;
+
+      SDValue Src = Node->getOperand(0);
+      SDValue Imm = CurDAG->getTargetConstant(ShAmt, DL, MVT::i32);
+
+      unsigned MovToRX   = (OutBits == 32) ? SPEX64::MOV32  : SPEX64::MOV64;
+      unsigned MovFromRX = (OutBits == 32) ? SPEX64::MOV32_R: SPEX64::MOV64_R;
+      unsigned ShlOpc    = (OutBits == 32) ? SPEX64::SHL32  : SPEX64::SHL64;
+      unsigned SraOpc    = (OutBits == 32) ? SPEX64::SRA32  : SPEX64::SRA64;
+
+      SDNode *MovN = CurDAG->getMachineNode(MovToRX, DL, MVT::Glue, Src);
+      SDValue Glue(MovN, 0);
+
+      SDNode *ShlN = CurDAG->getMachineNode(ShlOpc, DL, MVT::Glue, Imm, Glue);
+      Glue = SDValue(ShlN, 0);
+
+      SDNode *SraN = CurDAG->getMachineNode(SraOpc, DL, MVT::Glue, Imm, Glue);
+      Glue = SDValue(SraN, 0);
+
+      SDNode *OutN = CurDAG->getMachineNode(
+          MovFromRX, DL, OutVT.getSimpleVT(), Glue);
+
+      ReplaceNode(Node, OutN);
+      return;
+    }
     default:
       // Fallback: treat as !=
       BccOpc = Is64 ? SPEX64::BCC_ne_64 : SPEX64::BCC_ne_32;

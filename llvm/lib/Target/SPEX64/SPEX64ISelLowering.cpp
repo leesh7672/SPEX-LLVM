@@ -50,6 +50,13 @@ SPEX64TargetLowering::SPEX64TargetLowering(const SPEX64TargetMachine &TM,
   setOperationAction(ISD::BR_CC, MVT::i16, Custom);
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
   setOperationAction(ISD::BR_CC, MVT::i64, Custom);
+  setOperationAction(ISD::SHL, MVT::i32, Custom);
+  setOperationAction(ISD::SHL, MVT::i64, Custom);
+  setOperationAction(ISD::SRL, MVT::i32, Custom);
+  setOperationAction(ISD::SRL, MVT::i64, Custom);
+  setOperationAction(ISD::SRA, MVT::i32, Custom);
+  setOperationAction(ISD::SRA, MVT::i64, Custom);
+
 
   setOperationAction(ISD::BRCOND, MVT::Other, Expand);
   setOperationAction(ISD::SETCC, MVT::i32, Expand);
@@ -113,6 +120,12 @@ SDValue SPEX64TargetLowering::LowerOperation(SDValue Op,
   case ISD::BR:
     return LowerBR(Op.getOperand(0), Op.getOperand(1), SDLoc(Op), DAG);
   case ISD::BR_CC:
+  case ISD::SHL:
+    return LowerShift(Op, DAG, SPEX64ISD::SHL_I);
+  case ISD::SRL:
+    return LowerShift(Op, DAG, SPEX64ISD::SRL_I);
+  case ISD::SRA:
+    return LowerShift(Op, DAG, SPEX64ISD::SRA_I);
     return LowerBR_CC(
         Op.getOperand(0), cast<CondCodeSDNode>(Op.getOperand(1))->get(),
         Op.getOperand(2), Op.getOperand(3), Op.getOperand(4), SDLoc(Op), DAG);
@@ -243,6 +256,30 @@ SPEX64TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID, bool,
   }
 
   return DAG.getNode(SPEX64ISD::RET, DL, MVT::Other, Chain);
+}
+
+
+SDValue SPEX64TargetLowering::LowerShift(SDValue Op, SelectionDAG &DAG,
+                                        unsigned TgtOpc) const {
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType();
+
+  // We only custom-lower constant shift amounts. Non-constant shifts can
+  // be expanded or legalized later.
+  auto *C = dyn_cast<ConstantSDNode>(Op.getOperand(1));
+  if (!C)
+    return SDValue();
+
+  uint64_t Amt = C->getZExtValue();
+  // LLVM IR/SelectionDAG allows overshifts; keep behavior well-defined by
+  // masking to element size (like many ISAs) or let it be expanded.
+  unsigned Bits = VT.getSizeInBits();
+  if (Bits == 0)
+    return SDValue();
+  Amt &= (Bits - 1);
+
+  SDValue Imm = DAG.getConstant(Amt, DL, MVT::i32);
+  return DAG.getNode(TgtOpc, DL, VT, Op.getOperand(0), Imm);
 }
 
 SDValue SPEX64TargetLowering::LowerBR_CC(SDValue Chain, ISD::CondCode CC,

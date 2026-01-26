@@ -23,6 +23,9 @@ enum NodeType : unsigned {
   RET,
   BR,
   BR_CC,
+  SHL_I,
+  SRL_I,
+  SRA_I,
   LSTOP,
   LWAIT,
   LWAKE,
@@ -53,6 +56,8 @@ public:
 
   SDValue LowerBR_CC(SDValue Chain, ISD::CondCode CC, SDValue LHS, SDValue RHS,
                      SDValue Dest, const SDLoc &DL, SelectionDAG &DAG) const;
+
+  SDValue LowerShift(SDValue Op, SelectionDAG &DAG, unsigned TgtOpc) const;
 
   SDValue LowerCall(TargetLowering::CallLoweringInfo &CLI,
                     SmallVectorImpl<SDValue> &InVals) const override;

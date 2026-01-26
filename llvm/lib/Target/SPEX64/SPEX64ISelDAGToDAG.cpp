@@ -123,24 +123,75 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
 
   switch (Node->getOpcode()) {
 
-  case ISD::GlobalAddress:
-  case ISD::ExternalSymbol:
-  case ISD::ConstantPool:
-  case ISD::JumpTable:
-  case ISD::BlockAddress:
   case ISD::TargetGlobalAddress:
   case ISD::TargetExternalSymbol:
   case ISD::TargetConstantPool:
   case ISD::TargetJumpTable:
-  case ISD::TargetBlockAddress: {
+  case ISD::TargetBlockAddress:
+    break;
+
+  case ISD::GlobalAddress:
+  case ISD::ExternalSymbol:
+  case ISD::ConstantPool:
+  case ISD::JumpTable:
+  case ISD::BlockAddress: {
     // If used as a direct call target, let the CALL selector handle it.
     for (auto UI = Node->use_begin(), UE = Node->use_end(); UI != UE; ++UI) {
       SDNode *UseN = UI->getUser();
+      if (UseN->isMachineOpcode()) {
+        switch (UseN->getMachineOpcode()) {
+        case SPEX64::CALL:
+        case SPEX64::CALL32:
+        case SPEX64::CALL64:
+          if (UI->getOperandNo() == 0)
+            return;
+          break;
+        default:
+          break;
+        }
+        continue;
+      }
       if (UseN->getOpcode() == SPEX64ISD::CALL &&
-          UI->getOperandNo() == 1)
+          (UI->getOperandNo() == 0 || UI->getOperandNo() == 1))
         return;
     }
     SDValue Addr(Node, 0);
+    switch (Node->getOpcode()) {
+    case ISD::GlobalAddress: {
+      auto *GA = cast<GlobalAddressSDNode>(Node);
+      Addr = CurDAG->getTargetGlobalAddress(
+          GA->getGlobal(), DL, MVT::i64, GA->getOffset(),
+          GA->getTargetFlags());
+      break;
+    }
+    case ISD::ExternalSymbol: {
+      auto *ES = cast<ExternalSymbolSDNode>(Node);
+      Addr = CurDAG->getTargetExternalSymbol(ES->getSymbol(), MVT::i64,
+                                             ES->getTargetFlags());
+      break;
+    }
+    case ISD::ConstantPool: {
+      auto *CP = cast<ConstantPoolSDNode>(Node);
+      Addr = CurDAG->getTargetConstantPool(CP->getConstVal(), MVT::i64,
+                                           CP->getAlign(), CP->getOffset());
+      break;
+    }
+    case ISD::JumpTable: {
+      auto *JT = cast<JumpTableSDNode>(Node);
+      Addr = CurDAG->getTargetJumpTable(JT->getIndex(), MVT::i64,
+                                        JT->getTargetFlags());
+      break;
+    }
+    case ISD::BlockAddress: {
+      auto *BA = cast<BlockAddressSDNode>(Node);
+      Addr = CurDAG->getTargetBlockAddress(BA->getBlockAddress(), MVT::i64,
+                                           BA->getOffset(),
+                                           BA->getTargetFlags());
+      break;
+    }
+    default:
+      break;
+    }
     SDNode *Res = CurDAG->getMachineNode(SPEX64::PSEUDO_LI64, DL, MVT::i64,
                                          Addr);
     ReplaceNode(Node, Res);
@@ -256,7 +307,8 @@ case SPEX64ISD::SRA_I: {
     Ops.push_back(Chain);
 
     unsigned CallOpc = SPEX64::CALL;
-    if (Callee.getOpcode() == ISD::Register)
+    if (Callee.getOpcode() == ISD::Register ||
+        Callee.getOpcode() == ISD::CopyFromReg)
       CallOpc = SPEX64::CALLR;
 
     if (Glue.getNode())

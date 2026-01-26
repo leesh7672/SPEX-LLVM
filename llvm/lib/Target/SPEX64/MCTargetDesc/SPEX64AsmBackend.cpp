@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SPEX64MCTargetDesc.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCELFObjectWriter.h"
 #include "llvm/MC/MCFixup.h"
@@ -70,6 +71,17 @@ public:
 
   MCFixupKindInfo getFixupKindInfo(MCFixupKind Kind) const override {
     return MCAsmBackend::getFixupKindInfo(Kind);
+  }
+
+  unsigned getRelocType(const MCFixup &Fixup) const {
+    switch (Fixup.getKind()) {
+    case FK_Data_4:
+      return ELF::R_SPEX64_32;
+    case FK_Data_8:
+      return ELF::R_SPEX64_64;
+    default:
+      return ELF::R_SPEX64_NONE;
+    }
   }
 };
 } // namespace

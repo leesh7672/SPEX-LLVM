@@ -22,8 +22,15 @@ public:
   ~SPEX64ELFObjectWriter() override = default;
 
 protected:
-  unsigned getRelocType(const MCFixup &, const MCValue &, bool) const override {
-    return 0;
+  unsigned getRelocType(const MCFixup &Fixup, const MCValue &, bool) const override {
+    switch (Fixup.getKind()) {
+    case FK_Data_4:
+      return ELF::R_SPEX64_32;
+    case FK_Data_8:
+      return ELF::R_SPEX64_64;
+    default:
+      return ELF::R_SPEX64_NONE;
+    }
   }
 };
 } // namespace

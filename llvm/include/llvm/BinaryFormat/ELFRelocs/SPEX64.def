@@ -1,0 +1,11 @@
+//===-- SPEX64.def - SPEX64 ELF relocation types -------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+// Simple absolute relocations for the current SPEX64 backend needs.
+ELF_RELOC(R_SPEX64_NONE, 0)
+ELF_RELOC(R_SPEX64_32, 1)
+ELF_RELOC(R_SPEX64_64, 2)

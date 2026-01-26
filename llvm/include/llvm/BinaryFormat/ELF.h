@@ -1096,6 +1096,11 @@ enum {
 #include "ELFRelocs/Xtensa.def"
 };
 
+// ELF Relocation types for SPEX64
+enum {
+#include "ELFRelocs/SPEX64.def"
+};
+
 #undef ELF_RELOC
 
 // Section header.

@@ -9,6 +9,7 @@
 #include "Symbols.h"
 #include "Target.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Support/Endian.h"
 
 using namespace llvm;
 using namespace llvm::ELF;
@@ -30,8 +31,11 @@ public:
 RelExpr SPEX64::getRelExpr(RelType type, const Symbol &s,
                            const uint8_t *loc) const {
   switch (type) {
-  case 0:
+  case R_SPEX64_NONE:
     return R_NONE;
+  case R_SPEX64_32:
+  case R_SPEX64_64:
+    return R_ABS;
   default:
     Err(ctx) << getErrorLoc(ctx, loc) << "unknown relocation (" << type.v
              << ") against symbol " << &s;
@@ -42,7 +46,13 @@ RelExpr SPEX64::getRelExpr(RelType type, const Symbol &s,
 void SPEX64::relocate(uint8_t *loc, const Relocation &rel,
                       uint64_t val) const {
   switch (rel.type) {
-  case 0:
+  case R_SPEX64_NONE:
+    return;
+  case R_SPEX64_32:
+    llvm::support::endian::write32le(loc, static_cast<uint32_t>(val));
+    return;
+  case R_SPEX64_64:
+    llvm::support::endian::write64le(loc, val);
     return;
   default:
     Err(ctx) << getErrorLoc(ctx, loc) << "unrecognized relocation " << rel.type;

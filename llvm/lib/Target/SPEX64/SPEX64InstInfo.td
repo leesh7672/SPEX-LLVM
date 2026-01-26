@@ -58,8 +58,13 @@ def SPEX64Imm64 : Operand<i64> {
   let DecoderMethod = "DecodeSPEX64Imm64";
 }
 
-def brtarget : Operand<OtherVT> {
+// Branch/call target: accept a symbol/expression in assembly (e.g. `call foo`).
+// Treat as 64-bit immediate so the asm matcher will build an Expr operand,
+// allowing the MCCodeEmitter / AsmBackend to emit and apply fixups.
+def brtarget : Operand<i64> {
+  let ParserMatchClass = SPEX64Imm64AsmOperand;
   let EncoderMethod = "getMachineOpValue";
+  let DecoderMethod = "DecodeSPEX64Imm64";
 }
 
 class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
@@ -981,5 +986,3 @@ def : Pat<(store i8:$val, (SPEX64Addr i64:$base, SPEX64Imm32Pat:$off)),
           (PSEUDO_ST8 GPR:$val, GPR:$base, imm:$off)>;
 
 defm : RemapAllTargetPseudoPointerOperands<GPR>;
-
-def : Pat<(br bb:$dst), (PSEUDO_BR brtarget:$dst)>;

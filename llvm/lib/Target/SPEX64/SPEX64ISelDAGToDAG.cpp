@@ -94,7 +94,7 @@ bool SPEX64DAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base,
   }
 
   Base = Addr;
-  Offset = CurDAG->getTargetConstant(0, DL, MVT::i32);
+  Offset = CurDAG->getConstant(0, DL, MVT::i32);
   return true;
 }
 

@@ -282,10 +282,6 @@ def CALL : Pseudo<(outs), (ins brtarget:$target), "", []>;
 let isCall = 1, isCodeGenOnly = 1 in
 def CALLR : Pseudo<(outs), (ins GPR:$r6), "", [(Call GPR:$r6)]>;
 
-def : Pat<(Call tglobaladdr:$dst), (CALL tglobaladdr:$dst)>;
-def : Pat<(Call texternalsym:$dst), (CALL texternalsym:$dst)>;
-def : Pat<(Call tblockaddress:$dst), (CALL tblockaddress:$dst)>;
-
 def SP_RX : SPEX64Inst<"sp\t$r6", (outs), (ins GPR:$r6), 0x206, 0, 0b00, 0, 0>;
 def SP32 : SPEX64Inst<"sp	$r6, $target", (outs),
                       (ins GPR:$r6, brtarget:$target),

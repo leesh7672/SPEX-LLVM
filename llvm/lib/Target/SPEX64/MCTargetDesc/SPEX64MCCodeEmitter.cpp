@@ -87,9 +87,18 @@ void SPEX64MCCodeEmitter::encodeInstruction(const MCInst &MI,
   const MCOperand *ImmOp = nullptr;
   for (unsigned I = 0, E = MI.getNumOperands(); I < E; ++I) {
     const MCOperand &Op = MI.getOperand(I);
-    if (Op.isImm() || Op.isExpr()) {
+    if (Op.isExpr()) {
       ImmOp = &Op;
       break;
+    }
+  }
+  if (!ImmOp) {
+    for (unsigned I = 0, E = MI.getNumOperands(); I < E; ++I) {
+      const MCOperand &Op = MI.getOperand(I);
+      if (Op.isImm()) {
+        ImmOp = &Op;
+        break;
+      }
     }
   }
 

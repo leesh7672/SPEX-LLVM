@@ -387,50 +387,29 @@ SPEX64TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   }
 
   SDValue Target;
-  bool NeedsCalleeReg = false;
   switch (Callee.getOpcode()) {
   case ISD::TargetGlobalAddress:
     Target = Callee;
-    NeedsCalleeReg = true;
     break;
   case ISD::GlobalAddress: {
     auto *GA = cast<GlobalAddressSDNode>(Callee);
     Target = DAG.getTargetGlobalAddress(GA->getGlobal(), DL,
                                         getPointerTy(DAG.getDataLayout()),
                                         GA->getOffset(), GA->getTargetFlags());
-    NeedsCalleeReg = true;
     break;
   }
   case ISD::ExternalSymbol: {
     auto *ES = cast<ExternalSymbolSDNode>(Callee);
     Target = DAG.getTargetExternalSymbol(ES->getSymbol(),
                                          getPointerTy(DAG.getDataLayout()));
-    NeedsCalleeReg = true;
     break;
   }
-  case ISD::TargetExternalSymbol:
-  case ISD::TargetConstantPool:
-  case ISD::TargetJumpTable:
-  case ISD::TargetBlockAddress:
-    Target = Callee;
-    NeedsCalleeReg = true;
-    break;
   default:
     if (Callee.getValueType() != MVT::i64)
       Target = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i64, Callee);
     else
       Target = Callee;
     break;
-  }
-
-  if (NeedsCalleeReg) {
-    MachineFunction &MF = DAG.getMachineFunction();
-    MachineRegisterInfo &MRI = MF.getRegInfo();
-    Register CalleeReg = MRI.createVirtualRegister(&SPEX64::GPRRegClass);
-    SDValue CalleeRegVal = DAG.getRegister(CalleeReg, MVT::i64);
-    Chain = DAG.getCopyToReg(Chain, DL, CalleeReg, Target, InGlue);
-    InGlue = Chain.getValue(1);
-    Target = CalleeRegVal;
   }
 
   SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);

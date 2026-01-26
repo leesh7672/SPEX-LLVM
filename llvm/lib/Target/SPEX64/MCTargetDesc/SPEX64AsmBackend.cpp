@@ -31,7 +31,7 @@ public:
     (void)Asm;
     // If the target is not fully resolved, let the object writer emit a
     // relocation.
-    return Target.isAbsolute() ? false : Target.getSymA() != nullptr;
+    return false;
   }
 
   explicit SPEX64AsmBackend(const MCSubtargetInfo &STI)

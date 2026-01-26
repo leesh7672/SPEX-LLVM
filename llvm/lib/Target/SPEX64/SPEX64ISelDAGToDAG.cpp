@@ -206,23 +206,6 @@ case SPEX64ISD::SRA_I: {
     SDValue Chain = Node->getOperand(0);
     SDValue Callee = Node->getOperand(1);
     SDValue Glue;
-    bool ForceCallR = false;
-
-    switch (Callee.getOpcode()) {
-    case ISD::TargetGlobalAddress:
-    case ISD::TargetExternalSymbol:
-    case ISD::TargetConstantPool:
-    case ISD::TargetJumpTable:
-    case ISD::TargetBlockAddress: {
-      SDNode *Li = CurDAG->getMachineNode(SPEX64::PSEUDO_LI64, DL, MVT::i64,
-                                          Callee);
-      Callee = SDValue(Li, 0);
-      ForceCallR = true;
-      break;
-    }
-    default:
-      break;
-    }
 
     SmallVector<SDValue, 8> Ops;
     for (unsigned I = 1, E = Node->getNumOperands(); I != E; ++I) {
@@ -231,16 +214,13 @@ case SPEX64ISD::SRA_I: {
         Glue = Op;
         break;
       }
-      if (I == 1)
-        Ops.push_back(Callee);
-      else
-        Ops.push_back(Op);
+      Ops.push_back(Op);
     }
 
     Ops.push_back(Chain);
 
     unsigned CallOpc = SPEX64::CALL;
-    if (ForceCallR || Callee.getOpcode() == ISD::Register)
+    if (Callee.getOpcode() == ISD::Register)
       CallOpc = SPEX64::CALLR;
 
     if (Glue.getNode())

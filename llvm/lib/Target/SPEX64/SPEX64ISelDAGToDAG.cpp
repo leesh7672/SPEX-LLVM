@@ -123,18 +123,16 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
 
   switch (Node->getOpcode()) {
 
-  case ISD::TargetGlobalAddress:
-  case ISD::TargetExternalSymbol:
-  case ISD::TargetConstantPool:
-  case ISD::TargetJumpTable:
-  case ISD::TargetBlockAddress:
-    break;
-
   case ISD::GlobalAddress:
   case ISD::ExternalSymbol:
   case ISD::ConstantPool:
   case ISD::JumpTable:
-  case ISD::BlockAddress: {
+  case ISD::BlockAddress:
+  case ISD::TargetGlobalAddress:
+  case ISD::TargetExternalSymbol:
+  case ISD::TargetConstantPool:
+  case ISD::TargetJumpTable:
+  case ISD::TargetBlockAddress: {
     // If used as a direct call target, let the CALL selector handle it.
     for (auto UI = Node->use_begin(), UE = Node->use_end(); UI != UE; ++UI) {
       SDNode *UseN = UI->getUser();

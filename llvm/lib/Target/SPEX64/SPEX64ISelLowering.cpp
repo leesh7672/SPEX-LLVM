@@ -89,9 +89,9 @@ SPEX64TargetLowering::SPEX64TargetLowering(const SPEX64TargetMachine &TM,
   setLoadExtAction(ISD::SEXTLOAD, MVT::i64, MVT::i16, Legal);
   setLoadExtAction(ISD::SEXTLOAD, MVT::i64, MVT::i32, Legal);
 
-  setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
-  setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
-  setOperationAction(ISD::ConstantPool, MVT::i64, Custom);
+  setOperationAction(ISD::GlobalAddress, MVT::i64, Legal);
+  setOperationAction(ISD::ExternalSymbol, MVT::i64, Legal);
+  setOperationAction(ISD::ConstantPool, MVT::i64, Legal);
 }
 
 const char *SPEX64TargetLowering::getTargetNodeName(unsigned Opcode) const {

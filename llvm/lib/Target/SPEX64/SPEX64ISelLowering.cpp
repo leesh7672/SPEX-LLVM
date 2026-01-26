@@ -120,15 +120,15 @@ SDValue SPEX64TargetLowering::LowerOperation(SDValue Op,
   case ISD::BR:
     return LowerBR(Op.getOperand(0), Op.getOperand(1), SDLoc(Op), DAG);
   case ISD::BR_CC:
+    return LowerBR_CC(
+        Op.getOperand(0), cast<CondCodeSDNode>(Op.getOperand(1))->get(),
+        Op.getOperand(2), Op.getOperand(3), Op.getOperand(4), SDLoc(Op), DAG);
   case ISD::SHL:
     return LowerShift(Op, DAG, SPEX64ISD::SHL_I);
   case ISD::SRL:
     return LowerShift(Op, DAG, SPEX64ISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEX64ISD::SRA_I);
-    return LowerBR_CC(
-        Op.getOperand(0), cast<CondCodeSDNode>(Op.getOperand(1))->get(),
-        Op.getOperand(2), Op.getOperand(3), Op.getOperand(4), SDLoc(Op), DAG);
   case ISD::ZERO_EXTEND: {
     // Prefer a single extending load when we see zext(load i8/i16/i32).
     SDValue Src = Op.getOperand(0);

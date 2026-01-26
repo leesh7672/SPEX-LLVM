@@ -617,10 +617,10 @@ let hasSideEffects = 1, isBranch = 1, isTerminator = 1, isBarrier = 1 in {
                                             i32imm:$cc)>;
 }
 
-def PSEUDO_LI32 : SPEX64PseudoInst<(outs GPR:$dst), (ins i32imm:$imm)>;
-def PSEUDO_LI64 : SPEX64PseudoInst<(outs GPR:$dst), (ins i64imm:$imm)>;
-def PSEUDO_LI16 : SPEX64PseudoInst<(outs GPR:$dst), (ins i16imm:$imm)>;
-def PSEUDO_LI8 : SPEX64PseudoInst<(outs GPR:$dst), (ins i8imm:$imm)>;
+def PSEUDO_LI32 : SPEX64PseudoInst<(outs GPR:$dst), (ins SPEX64Imm32:$imm)>;
+def PSEUDO_LI64 : SPEX64PseudoInst<(outs GPR:$dst), (ins SPEX64Imm64:$imm)>;
+def PSEUDO_LI16 : SPEX64PseudoInst<(outs GPR:$dst), (ins SPEX64Imm32:$imm)>;
+def PSEUDO_LI8 : SPEX64PseudoInst<(outs GPR:$dst), (ins SPEX64Imm32:$imm)>;
 
 def PSEUDO_ADD32rr : SPEX64PseudoInst<(outs GPR:$dst),
                                       (ins GPR:$src, GPR:$rhs)> {
@@ -783,8 +783,8 @@ def PSEUDO_ST8rr   : SPEX64PseudoInst<(outs),
 
 def : Pat<(i32 imm:$imm), (PSEUDO_LI32 imm:$imm)>;
 def : Pat<(i64 imm:$imm), (PSEUDO_LI64 imm:$imm)>;
-def : Pat<(i16 imm:$imm), (PSEUDO_LI16 imm:$imm)>;
-def : Pat<(i8 imm:$imm), (PSEUDO_LI8 imm:$imm)>;
+def : Pat<(i32 imm:$imm), (PSEUDO_LI16 imm:$imm)>;
+def : Pat<(i32 imm:$imm), (PSEUDO_LI8 imm:$imm)>;
 def : Pat<(i64 tglobaladdr:$imm), (PSEUDO_LI64 tglobaladdr:$imm)>;
 def : Pat<(i64 texternalsym:$imm), (PSEUDO_LI64 texternalsym:$imm)>;
 

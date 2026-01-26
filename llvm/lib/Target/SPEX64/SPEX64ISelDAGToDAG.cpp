@@ -68,6 +68,15 @@ bool SPEX64DAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base,
     return true;
   }
 
+  if (isa<ConstantSDNode>(Addr) ||
+      Addr.getOpcode() == ISD::TargetGlobalAddress ||
+      Addr.getOpcode() == ISD::TargetExternalSymbol) {
+    SDNode *Li = CurDAG->getMachineNode(SPEX64::LILI64_64, DL, MVT::i64, Addr);
+    Base = SDValue(Li, 0);
+    Offset = CurDAG->getTargetConstant(0, DL, MVT::i32);
+    return true;
+  }
+
   if (Addr.getOpcode() == ISD::ADD || Addr.getOpcode() == ISD::SUB) {
     SDValue LHS = Addr.getOperand(0);
     SDValue RHS = Addr.getOperand(1);

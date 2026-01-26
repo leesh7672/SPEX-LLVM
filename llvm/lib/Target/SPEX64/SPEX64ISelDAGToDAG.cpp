@@ -124,9 +124,20 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
   switch (Node->getOpcode()) {
 
   case ISD::TargetGlobalAddress:
-  case ISD::TargetExternalSymbol: {
+  case ISD::TargetExternalSymbol:
+  case ISD::TargetConstantPool:
+  case ISD::TargetJumpTable:
+  case ISD::TargetBlockAddress: {
+    // If used as a direct call target, let the CALL selector handle it.
+    for (auto UI = Node->use_begin(), UE = Node->use_end(); UI != UE; ++UI) {
+      SDNode *UseN = UI->getUser();
+      if (UseN->getOpcode() == SPEX64ISD::CALL &&
+          UI->getOperandNo() == 1)
+        return;
+    }
     SDValue Addr(Node, 0);
-    SDNode *Res = CurDAG->getMachineNode(SPEX64::PSEUDO_LI64, DL, MVT::i64, Addr);
+    SDNode *Res = CurDAG->getMachineNode(SPEX64::PSEUDO_LI64, DL, MVT::i64,
+                                         Addr);
     ReplaceNode(Node, Res);
     return;
   }

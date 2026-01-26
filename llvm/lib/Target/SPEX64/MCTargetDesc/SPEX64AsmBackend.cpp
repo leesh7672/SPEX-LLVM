@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SPEX64MCTargetDesc.h"
+#include "SPEX64FixupKinds.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCELFObjectWriter.h"
@@ -88,8 +89,17 @@ public:
   }
 
   MCFixupKindInfo getFixupKindInfo(MCFixupKind Kind) const override {
+  switch (Kind) {
+  case (MCFixupKind)SPEX64::fixup_spex64_32:
+    // 32-bit little-endian immediate.
+    return {"fixup_spex64_32", 0, 32, 0};
+  case (MCFixupKind)SPEX64::fixup_spex64_64:
+    // 64-bit little-endian immediate.
+    return {"fixup_spex64_64", 0, 64, 0};
+  default:
     return MCAsmBackend::getFixupKindInfo(Kind);
   }
+}
 
   unsigned getRelocType(const MCFixup &Fixup) const {
     switch (Fixup.getKind()) {

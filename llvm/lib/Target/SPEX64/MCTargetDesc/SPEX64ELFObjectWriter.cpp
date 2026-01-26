@@ -28,6 +28,10 @@ protected:
       return ELF::R_SPEX64_32;
     case FK_Data_8:
       return ELF::R_SPEX64_64;
+    case (MCFixupKind)SPEX64::fixup_spex64_32:
+      return ELF::R_SPEX64_32;
+    case (MCFixupKind)SPEX64::fixup_spex64_64:
+      return ELF::R_SPEX64_64;
     default:
       return ELF::R_SPEX64_NONE;
     }

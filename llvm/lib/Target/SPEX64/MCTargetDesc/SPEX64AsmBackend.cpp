@@ -64,7 +64,7 @@ public:
     switch (Fixup.getKind()) {
     case FK_Data_4:
     case FK_Data_8:
-      return false;
+      return true;
     default:
       return false;
     }

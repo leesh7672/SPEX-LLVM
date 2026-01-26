@@ -61,6 +61,22 @@ def SPEX64Imm64 : Operand<i64> {
 // Branch/call target: accept a symbol/expression in assembly (e.g. `call foo`).
 // Treat as 64-bit immediate so the asm matcher will build an Expr operand,
 // allowing the MCCodeEmitter / AsmBackend to emit and apply fixups.
+// Branch/call targets: accept a symbol/expression in assembly (e.g. `call foo`).
+// We split 32/64-bit variants so the asm matcher can choose the correct
+// instruction encoding based on operand width, while still allowing symbols
+// (Expr) to flow through to MC fixups/relocs.
+def brtarget32 : Operand<i32> {
+  let ParserMatchClass = SPEX64Imm32AsmOperand;
+  let EncoderMethod = "getMachineOpValue";
+  let DecoderMethod = "DecodeSPEX64Imm32";
+}
+def brtarget64 : Operand<i64> {
+  let ParserMatchClass = SPEX64Imm64AsmOperand;
+  let EncoderMethod = "getMachineOpValue";
+  let DecoderMethod = "DecodeSPEX64Imm64";
+}
+
+// Backward-compatible alias used by pseudos / patterns; keep as 64-bit.
 def brtarget : Operand<i64> {
   let ParserMatchClass = SPEX64Imm64AsmOperand;
   let EncoderMethod = "getMachineOpValue";
@@ -260,10 +276,10 @@ def BCC_cc_64 : SPEX64BCCInst<"bcc-cc\t$target", (outs),
 
 // jmp / call / sp
 def JMP_R : SPEX64Inst<"jmp\t$r6", (outs), (ins GPR:$r6), 0x200, 0, 0b00, 0, 0>;
-def JMP32 : SPEX64InstNoR6<"jmp	$target", (outs), (ins brtarget:$target),
+def JMP32 : SPEX64InstNoR6<"jmp	$target", (outs), (ins brtarget32:$target),
                            0x200, 0, 0b00, 1, 0> {
 }
-def JMP64 : SPEX64InstNoR6<"jmp	$target", (outs), (ins brtarget:$target),
+def JMP64 : SPEX64InstNoR6<"jmp	$target", (outs), (ins brtarget64:$target),
                            0x200, 0, 0b00, 1, 1> {
 }
 
@@ -273,12 +289,12 @@ def CALL_R : SPEX64Inst<"call\t$r6", (outs), (ins GPR:$r6), 0x203, 0, 0b00, 0, 0
 
 let isCall = 1, Defs = [LR] in
 
-def CALL32 : SPEX64InstNoR6<"call	$target", (outs), (ins brtarget:$target),
+def CALL32 : SPEX64InstNoR6<"call	$target", (outs), (ins brtarget32:$target),
                             0x203, 0, 0b00, 1, 0> {
 }
 let isCall = 1, Defs = [LR] in
 
-def CALL64 : SPEX64InstNoR6<"call	$target", (outs), (ins brtarget:$target),
+def CALL64 : SPEX64InstNoR6<"call	$target", (outs), (ins brtarget64:$target),
                             0x203, 0, 0b00, 1, 1> {
 }
 

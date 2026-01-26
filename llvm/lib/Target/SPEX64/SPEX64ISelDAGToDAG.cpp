@@ -233,50 +233,6 @@ case SPEX64ISD::SRA_I: {
     case ISD::SETUGT: BccOpc = Is64 ? SPEX64::BCC_gt_64 : SPEX64::BCC_gt_32; break;
     case ISD::SETGE:
     case ISD::SETUGE: BccOpc = Is64 ? SPEX64::BCC_ge_64 : SPEX64::BCC_ge_32; break;
-    case ISD::SIGN_EXTEND_INREG: {
-      SDLoc DL(Node);
-
-      EVT OutVT = Node->getValueType(0);
-      EVT InVT = cast<VTSDNode>(Node->getOperand(1))->getVT();
-
-      // We only handle the common integer cases here (e.g. i64 sext_inreg(..., i8)).
-      if (!OutVT.isSimple() || !InVT.isSimple() || !OutVT.isInteger() ||
-          !InVT.isInteger())
-        break;
-
-      unsigned OutBits = OutVT.getSimpleVT().getSizeInBits();
-      unsigned InBits  = InVT.getSimpleVT().getSizeInBits();
-      if (InBits >= OutBits)
-        break;
-
-      // SPEX64 shift instructions operate on the implicit accumulator RX with an
-      // immediate shift amount. Emit: RX = src; RX <<= shamt; RX sra= shamt;
-      // dst = RX;
-      unsigned ShAmt = OutBits - InBits;
-
-      SDValue Src = Node->getOperand(0);
-      SDValue Imm = CurDAG->getTargetConstant(ShAmt, DL, MVT::i32);
-
-      unsigned MovToRX   = (OutBits == 32) ? SPEX64::MOV32  : SPEX64::MOV64;
-      unsigned MovFromRX = (OutBits == 32) ? SPEX64::MOV32_R: SPEX64::MOV64_R;
-      unsigned ShlOpc    = (OutBits == 32) ? SPEX64::SHL32  : SPEX64::SHL64;
-      unsigned SraOpc    = (OutBits == 32) ? SPEX64::SRA32  : SPEX64::SRA64;
-
-      SDNode *MovN = CurDAG->getMachineNode(MovToRX, DL, MVT::Glue, Src);
-      SDValue Glue(MovN, 0);
-
-      SDNode *ShlN = CurDAG->getMachineNode(ShlOpc, DL, MVT::Glue, Imm, Glue);
-      Glue = SDValue(ShlN, 0);
-
-      SDNode *SraN = CurDAG->getMachineNode(SraOpc, DL, MVT::Glue, Imm, Glue);
-      Glue = SDValue(SraN, 0);
-
-      SDNode *OutN = CurDAG->getMachineNode(
-          MovFromRX, DL, OutVT.getSimpleVT(), Glue);
-
-      ReplaceNode(Node, OutN);
-      return;
-    }
     default:
       // Fallback: treat as !=
       BccOpc = Is64 ? SPEX64::BCC_ne_64 : SPEX64::BCC_ne_32;
@@ -289,6 +245,50 @@ case SPEX64ISD::SRA_I: {
     BrOps.push_back(CmpGlue);
     SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);
     ReplaceNode(Node, BrN);
+    return;
+  }
+  case ISD::SIGN_EXTEND_INREG: {
+    SDLoc DL(Node);
+
+    EVT OutVT = Node->getValueType(0);
+    EVT InVT = cast<VTSDNode>(Node->getOperand(1))->getVT();
+
+    // We only handle the common integer cases here (e.g. i64 sext_inreg(..., i8)).
+    if (!OutVT.isSimple() || !InVT.isSimple() || !OutVT.isInteger() ||
+        !InVT.isInteger())
+      break;
+
+    unsigned OutBits = OutVT.getSimpleVT().getSizeInBits();
+    unsigned InBits  = InVT.getSimpleVT().getSizeInBits();
+    if (InBits >= OutBits)
+      break;
+
+    // SPEX64 shift instructions operate on the implicit accumulator RX with an
+    // immediate shift amount. Emit: RX = src; RX <<= shamt; RX sra= shamt;
+    // dst = RX;
+    unsigned ShAmt = OutBits - InBits;
+
+    SDValue Src = Node->getOperand(0);
+    SDValue Imm = CurDAG->getTargetConstant(ShAmt, DL, MVT::i32);
+
+    unsigned MovToRX   = (OutBits == 32) ? SPEX64::MOVMOV32  : SPEX64::MOVMOV64;
+    unsigned MovFromRX = (OutBits == 32) ? SPEX64::MOVMOV32_R: SPEX64::MOVMOV64_R;
+    unsigned ShlOpc    = (OutBits == 32) ? SPEX64::SHL32  : SPEX64::SHL64;
+    unsigned SraOpc    = (OutBits == 32) ? SPEX64::SAR32  : SPEX64::SAR64;
+
+    SDNode *MovN = CurDAG->getMachineNode(MovToRX, DL, MVT::Glue, Src);
+    SDValue Glue(MovN, 0);
+
+    SDNode *ShlN = CurDAG->getMachineNode(ShlOpc, DL, MVT::Glue, Imm, Glue);
+    Glue = SDValue(ShlN, 0);
+
+    SDNode *SraN = CurDAG->getMachineNode(SraOpc, DL, MVT::Glue, Imm, Glue);
+    Glue = SDValue(SraN, 0);
+
+    SDNode *OutN = CurDAG->getMachineNode(
+        MovFromRX, DL, OutVT.getSimpleVT(), Glue);
+
+    ReplaceNode(Node, OutN);
     return;
   }
   case SPEX64ISD::RET: {

@@ -35,6 +35,24 @@ public:
     return createSPEX64ELFObjectTargetWriter(OSABI);
   }
 
+  bool shouldForceRelocation(const MCAssembler &, const MCFixup &Fixup,
+                             const MCValue &) const {
+    // Allow the assembler to resolve absolute fixups when the target is known
+    // at assembly time (e.g. intra-section symbols). This avoids depending on
+    // the linker to apply target-specific relocations for simple ROM images.
+    switch (Fixup.getKind()) {
+    case FK_Data_4:
+    case FK_Data_8:
+      return false;
+    default:
+      return false;
+    }
+  }
+
+  bool needsRelocateWithSymbol(const MCValue &, const MCFixup &) const {
+    return false;
+  }
+
   void applyFixup(const MCFragment &Fragment, const MCFixup &Fixup,
                   const MCValue &Target, uint8_t *Data, uint64_t,
                   bool) override {

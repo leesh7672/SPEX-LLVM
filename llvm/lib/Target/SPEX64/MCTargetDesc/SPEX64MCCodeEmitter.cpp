@@ -67,30 +67,11 @@ void SPEX64MCCodeEmitter::encodeInstruction(const MCInst &MI,
                                             SmallVectorImpl<MCFixup> &Fixups,
                                             const MCSubtargetInfo &STI) const {
   uint32_t W0 = static_cast<uint32_t>(getBinaryCodeForInstr(MI, Fixups, STI));
-  unsigned Size = 4;
-  if (W0 & (1u << 16)) {
-    Size = (W0 & (1u << 15)) ? 12 : 8;
-  }
 
-  const MCExpr *Expr = nullptr;
-  for (unsigned I = 0, E = MI.getNumOperands(); I < E; ++I) {
-    const MCOperand &Op = MI.getOperand(I);
-    if (Op.isExpr()) {
-      Expr = Op.getExpr();
-      break;
-    }
-  }
+  bool I1 = (W0 >> 16) & 1;
+  bool I64 = (W0 >> 15) & 1;
 
-  if (Size <= 4 && Expr) {
-    llvm::errs() << "SPEX64MCCodeEmitter: Expr operand on 32-bit instruction\n";
-    llvm::errs() << "  W0=0x" << llvm::format_hex(W0, 10) << "\n";
-    llvm::errs() << "  MCInst opcode=" << MI.getOpcode()
-                 << " operands=" << MI.getNumOperands() << "\n";
-    llvm::report_fatal_error(
-        "SPEX64: relocation on W0-only instruction; fix encoding/patterns");
-  }
-
-  if (Size <= 4) {
+  if (!I1) {
     support::endian::write(CB, W0, endianness::little);
     return;
   }
@@ -120,19 +101,19 @@ void SPEX64MCCodeEmitter::encodeInstruction(const MCInst &MI,
       Imm64 = static_cast<uint64_t>(ImmOp->getImm());
       Imm32 = static_cast<uint32_t>(Imm64);
     } else if (ImmOp->isExpr()) {
-      if (Size == 8 || Size == 12) {
-        MCFixupKind Kind = (Size == 8) ? (MCFixupKind)SPEX64::fixup_spex64_32
-                                       : (MCFixupKind)SPEX64::fixup_spex64_64;
+      if (I1) {
+        MCFixupKind Kind = (!I64) ? (MCFixupKind)SPEX64::fixup_spex64_32
+                                  : (MCFixupKind)SPEX64::fixup_spex64_64;
         Fixups.push_back(MCFixup::create(4, ImmOp->getExpr(), Kind));
       }
     }
   }
 
   support::endian::write(CB, W0, endianness::little);
-  if (Size == 8) {
-    support::endian::write(CB, Imm32, endianness::little);
-  } else if (Size == 12) {
+  if (I64) {
     support::endian::write(CB, Imm64, endianness::little);
+  } else if (I1) {
+    support::endian::write(CB, Imm32, endianness::little);
   }
 }
 

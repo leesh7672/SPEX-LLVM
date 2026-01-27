@@ -122,6 +122,19 @@ bool SPEX64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   DebugLoc DL = MI.getDebugLoc();
 
   switch (MI.getOpcode()) {
+  case SPEX64::ADJCALLSTACKDOWN:
+  case SPEX64::ADJCALLSTACKUP: {
+    // SPEX64 has no call stack to adjust in this ABI; erase if zero.
+    // LLVM may still emit these pseudos around calls.
+    int64_t Amt1 = MI.getOperand(0).isImm() ? MI.getOperand(0).getImm() : 0;
+    int64_t Amt2 = MI.getOperand(1).isImm() ? MI.getOperand(1).getImm() : 0;
+    if (Amt1 == 0 && Amt2 == 0) {
+      MI.eraseFromParent();
+      return true;
+    }
+    report_fatal_error(
+        "SPEX64: ADJCALLSTACK* with non-zero amount is unsupported");
+  }
   case SPEX64::CALL: {
     MachineInstrBuilder MIB = BuildMI(MBB, I, DL, get(SPEX64::CALL64));
     for (const MachineOperand &MO : MI.operands())

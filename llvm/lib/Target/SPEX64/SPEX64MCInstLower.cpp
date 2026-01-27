@@ -80,6 +80,20 @@ MCOperand SPEX64MCInstLower::lowerSymbolOperand(const MachineOperand &MO,
 void SPEX64MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
   OutMI.setOpcode(MI->getOpcode());
 
+  // Do not silently lower pseudos/target-independent opcodes to garbage.
+  if (MI->isPseudo()) {
+    MI->print(errs());
+    report_fatal_error("SPEX64: pseudo reached MCInstLower; missing expansion");
+  }
+  if (MI->getOpcode() == TargetOpcode::COPY ||
+      MI->getOpcode() == TargetOpcode::INSERT_SUBREG ||
+      MI->getOpcode() == TargetOpcode::EXTRACT_SUBREG ||
+      MI->getOpcode() == TargetOpcode::SUBREG_TO_REG ||
+      MI->getOpcode() == TargetOpcode::IMPLICIT_DEF) {
+    MI->print(errs());
+    report_fatal_error("SPEX64: unexpected TargetOpcode reached MCInstLower");
+  }
+
   for (const MachineOperand &MO : MI->operands()) {
     MCOperand MCOp;
     switch (MO.getType()) {

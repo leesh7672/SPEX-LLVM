@@ -293,6 +293,22 @@ class SPEX64AsmParser : public MCTargetAsmParser {
 
   bool parseInstruction(ParseInstructionInfo &Info, StringRef Name,
                         SMLoc NameLoc, OperandVector &Operands) override {
+    // Accept mnemonic suffix written with a '-' (e.g. "bcc-eq").
+    // The LLVM asm lexer tokenizes this as: Identifier("bcc"), Minus, Identifier("eq").
+    // Recompose it here so the TableGen asm matcher sees a single mnemonic token.
+    if (getLexer().is(AsmToken::Minus)) {
+      AsmToken TokAfterDash = getLexer().peekTok();
+      if (TokAfterDash.is(AsmToken::Identifier)) {
+        SmallString<32> FullName(Name);
+        FullName.push_back('-');
+        FullName.append(TokAfterDash.getIdentifier());
+        // Consume '-' and the suffix identifier.
+        getLexer().Lex(); // '-'
+        getLexer().Lex(); // suffix
+        Name = Parser.getContext().allocateString(FullName);
+      }
+    }
+
     Operands.push_back(SPEX64Operand::createToken(Name, NameLoc));
 
     if (getLexer().is(AsmToken::EndOfStatement))

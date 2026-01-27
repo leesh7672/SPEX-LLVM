@@ -26,22 +26,17 @@ class SPEX64AsmBackend : public MCAsmBackend {
   Triple::OSType OSType;
 
 public:
-  bool shouldForceRelocation(const MCAssembler &Asm, const MCFixup &Fixup,
+  bool shouldForceRelocation(const MCFixup &Fixup,
                              const MCValue &Target) {
-    (void)Asm;
-    // If the target is not fully resolved, let the object writer emit a
-    // relocation.
-    // Force relocations for symbolic branch/call immediates. Without this,
-    // the assembler may treat cross-fragment symbols as unresolved but still
-    // emit no relocation, leaving the immediate as 0 in the object file.
-    //
-    // We conservatively force relocations for data-sized fixups used by
-    // SPEX64 variable-length encodings (imm32/imm64 payloads).
+    (void)Target;
+    // Keep relocations for these fixups in .o so that the linker can
+    // resolve absolute addresses (calls, branches, and address
+    // materialization).
     switch (Fixup.getKind()) {
-    case FK_Data_4:
-    case FK_Data_8:
     case (MCFixupKind)SPEX64::fixup_spex64_32:
     case (MCFixupKind)SPEX64::fixup_spex64_64:
+    case FK_Data_4:
+    case FK_Data_8:
       return true;
     default:
       return false;

@@ -59,9 +59,7 @@ def SPEX64Imm64 : Operand<i64> {
 }
 
 def brtarget : Operand<OtherVT> {
-  let ParserMatchClass = SPEX64Imm64AsmOperand;
   let EncoderMethod = "getMachineOpValue";
-  let DecoderMethod = "DecodeSPEX64Imm64";
 }
 
 class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,

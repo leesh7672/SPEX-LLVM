@@ -122,7 +122,7 @@ void SPEX64MCCodeEmitter::encodeInstruction(const MCInst &MI,
     } else if (ImmOp->isExpr()) {
       MCFixupKind Kind = (Size == 8) ? (MCFixupKind)SPEX64::fixup_spex64_32
                                      : (MCFixupKind)SPEX64::fixup_spex64_64;
-      Fixups.push_back(MCFixup::create(Size - 4, ImmOp->getExpr(), Kind));
+      Fixups.push_back(MCFixup::create(4, ImmOp->getExpr(), Kind));
     }
   }
 

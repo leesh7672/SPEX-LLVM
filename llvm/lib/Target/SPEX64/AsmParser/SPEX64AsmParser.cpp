@@ -79,13 +79,13 @@ public:
   }
 
   bool isImm64() const {
-      // Accept both numeric immediates and symbol expressions (e.g. call foo).
-      if (isImm())
-        return true;
-      if (isExpr())
-        return true;
-      return false;
-    }
+    // Accept both numeric immediates and symbol expressions (e.g. call foo).
+    if (isImm())
+      return true;
+    if (isExpr())
+      return true;
+    return false;
+  }
 
   MCRegister getReg() const override { return Reg; }
   const MCExpr *getImm() const { return Imm; }

@@ -26,8 +26,7 @@ class SPEX64AsmBackend : public MCAsmBackend {
   Triple::OSType OSType;
 
 public:
-  bool shouldForceRelocation(const MCFixup &Fixup,
-                             const MCValue &Target) {
+  bool shouldForceRelocation(const MCFixup &Fixup, const MCValue &Target) {
     (void)Target;
     // Keep relocations for these fixups in .o so that the linker can
     // resolve absolute addresses (calls, branches, and address

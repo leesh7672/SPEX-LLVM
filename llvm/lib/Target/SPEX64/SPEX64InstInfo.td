@@ -268,18 +268,20 @@ def JMP64 : SPEX64InstNoR6<"jmp	$target", (outs), (ins brtarget:$target),
 
 let isCall = 1, Defs = [LR] in
 
-def CALL_R : SPEX64Inst<"call\t$r6", (outs), (ins GPR:$r6), 0x203, 0, 0b00, 0, 0>;
+// Absolute-address call (inline immediate address). This is what plain `call`
+// in assembly means.
+def CALLI : SPEX64InstNoR6<"call\t$target", (outs), (ins brtarget:$target),
+                           0x203, 0, 0b00, 1, 1> {
+}
+
+// Register-indirect calls. The suffix (32/64) indicates the register width.
+let isCall = 1, Defs = [LR] in
+def CALL32 : SPEX64Inst<"call32\t$r6", (outs), (ins GPR:$r6),
+                        0x203, 0, 0b10, 0, 0>;
 
 let isCall = 1, Defs = [LR] in
-
-def CALL32 : SPEX64InstNoR6<"call	$target", (outs), (ins brtarget:$target),
-                            0x203, 0, 0b00, 1, 0> {
-}
-let isCall = 1, Defs = [LR] in
-
-def CALL64 : SPEX64InstNoR6<"call	$target", (outs), (ins brtarget:$target),
-                            0x203, 0, 0b00, 1, 1> {
-}
+def CALL64 : SPEX64Inst<"call64\t$r6", (outs), (ins GPR:$r6),
+                        0x203, 0, 0b11, 0, 0>;
 
 let isCall = 1, isCodeGenOnly = 1 in
 def CALL : Pseudo<(outs), (ins brtarget:$target), "", []>;

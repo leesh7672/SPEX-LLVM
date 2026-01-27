@@ -106,6 +106,43 @@ DecodeStatus DecodeSPEX64Imm64(MCInst &Inst, unsigned /*Imm*/,
   return decodeImmediate64(Inst, Decoder);
 }
 
+static DecodeStatus decodeImmediateVar(MCInst &Inst,
+                                       uint64_t /*Address*/,
+                                       const MCDisassembler *Decoder) {
+  auto *Dis = static_cast<const SPEX64Disassembler *>(Decoder);
+  ArrayRef<uint8_t> Bytes = Dis->getCurBytes();
+  if (Bytes.size() < 4)
+    return MCDisassembler::Fail;
+
+  uint32_t Insn = support::endian::read32le(Bytes.data());
+  unsigned I1  = (Insn >> 16) & 0x1;
+  unsigned I64 = (Insn >> 15) & 0x1;
+
+  if (!I1)
+    return MCDisassembler::Fail;
+
+  if (I64) {
+    if (Bytes.size() < 12)
+      return MCDisassembler::Fail;
+    uint64_t Imm = support::endian::read64le(Bytes.data() + 4);
+    Inst.addOperand(MCOperand::createImm(static_cast<int64_t>(Imm)));
+    return MCDisassembler::Success;
+  }
+
+  if (Bytes.size() < 8)
+    return MCDisassembler::Fail;
+  uint32_t Imm = support::endian::read32le(Bytes.data() + 4);
+  Inst.addOperand(MCOperand::createImm(static_cast<int64_t>(static_cast<uint64_t>(Imm))));
+  return MCDisassembler::Success;
+}
+
+DecodeStatus DecodeSPEX64ImmVar(MCInst &Inst, unsigned /*Imm*/,
+                               uint64_t Address,
+                               const MCDisassembler *Decoder) {
+  return decodeImmediateVar(Inst, Address, Decoder);
+}
+
+
 #include "SPEX64GenDisassemblerTables.inc"
 
 DecodeStatus SPEX64Disassembler::getInstruction(MCInst &Instr, uint64_t &Size,

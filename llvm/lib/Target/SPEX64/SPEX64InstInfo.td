@@ -71,7 +71,7 @@ class SPEX64Inst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
   let AsmString      = asmstr;
   let Namespace      = "SPEX64";
 
-  let Size = 4;
+  let Size = !if(i1, !if(i64, 12, 8), 4);
   bits<32> Inst;
   bits<6> r6;
   bits<9> K9;

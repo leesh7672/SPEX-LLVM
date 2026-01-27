@@ -142,7 +142,7 @@ def : Pat<(CallSeqEnd timm:$amt1, timm:$amt2),
 // SYS opcodes (0x000-0x00E)
 def NOP     : SPEX64InstNoR6<"nop", (outs), (ins), 0x000, 0, 0b00, 0, 0>;
 def HLT     : SPEX64InstNoR6<"hlt", (outs), (ins), 0x001, 0, 0b00, 0, 0>;
-let isReturn = 1, isTerminator = 1, Uses = [LR] in
+let isReturn = 1, isTerminator = 1, isBarrier = 1, hasSideEffects = 1, Uses = [LR] in
 def RET     : SPEX64InstNoR6<"ret", (outs), (ins), 0x002, 0, 0b00, 0, 0>;
 def SYSCALL : SPEX64InstNoR6<"syscall", (outs), (ins), 0x003, 0, 0b00, 0, 0>;
 def TRAP    : SPEX64InstNoR6<"trap", (outs), (ins), 0x004, 0, 0b00, 0, 0>;
@@ -153,9 +153,11 @@ def INTEN   : SPEX64InstNoR6<"inten", (outs), (ins), 0x008, 0, 0b00, 0, 0>;
 def INTDIS  : SPEX64InstNoR6<"intdis", (outs), (ins), 0x009, 0, 0b00, 0, 0>;
 def WFI     : SPEX64InstNoR6<"wfi", (outs), (ins), 0x00A, 0, 0b00, 0, 0>;
 def ILL     : SPEX64InstNoR6<"ill", (outs), (ins), 0x00B, 0, 0b00, 0, 0>;
+let hasSideEffects = 1, isBarrier = 1 in {
 def LSTOP   : SPEX64InstNoR6<"lstop", (outs), (ins), 0x00C, 0, 0b00, 0, 0>;
 def LWAIT   : SPEX64InstNoR6<"lwait", (outs), (ins), 0x00D, 0, 0b00, 0, 0>;
 def LWAKE   : SPEX64InstNoR6<"lwake", (outs), (ins), 0x00E, 0, 0b00, 0, 0>;
+}
 
 // bcc (absolute target, hyphenated condition)
 def BCC_eq_32 : SPEX64BCCInst<"bcc-eq\t$target", (outs),

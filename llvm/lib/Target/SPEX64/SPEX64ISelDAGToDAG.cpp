@@ -308,7 +308,7 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
         Callee.getOpcode() == ISD::TargetExternalSymbol ||
         Callee.getOpcode() == ISD::TargetConstantPool ||
         Callee.getOpcode() == ISD::TargetBlockAddress)
-      CallOpc = SPEX64::CALL;
+      CallOpc = SPEX64::CALL64;
 
     if (Glue.getNode())
       Ops.push_back(Glue);

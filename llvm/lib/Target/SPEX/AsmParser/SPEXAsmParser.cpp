@@ -324,7 +324,7 @@ class SPEXAsmParser : public MCTargetAsmParser {
 
   bool parseInstruction(ParseInstructionInfo &Info, StringRef Name,
                         SMLoc NameLoc, OperandVector &Operands) override {
-    // Accept mnemonic suffix written with a '-' (e.g. "bcc-eq").
+    // Accept mnemonic suffix written with a '-' (e.g. "bcc32-eq").
     // The LLVM asm lexer tokenizes this as: Identifier("bcc"), Minus,
     // Identifier("eq"). Recompose it here so the TableGen asm matcher sees a
     // single mnemonic token.

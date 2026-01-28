@@ -96,7 +96,7 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
   }
 
   // Instructions with I1=1 normally carry an immediate/expr operand.
-  // When this is missing, keep encoding with zero-fill but emit a diagnostic so
+  // If this is missing, keep encoding with zero-fill but emit a diagnostic so
   // the root cause can be fixed in TableGen/ISel.
   if (!ImmOp) {
     errs() << "SPEX: I1 instruction missing Imm/Expr operand: opcode="
@@ -110,6 +110,15 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
                                : "Other")
              << "\n";
     }
+
+    // Emit the base word and a zero-filled extension so the stream stays
+    // well-formed, then stop.
+    support::endian::write(CB, W0, endianness::little);
+    if (I64)
+      support::endian::write(CB, uint64_t(0), endianness::little);
+    else
+      support::endian::write(CB, uint32_t(0), endianness::little);
+    return;
   }
 
   uint32_t Imm32 = 0;

@@ -33,7 +33,7 @@
 #include "Targets/RISCV.h"
 #include "Targets/SPIR.h"
 #include "Targets/Sparc.h"
-#include "Targets/SPEX64.h"
+#include "Targets/SPEX.h"
 #include "Targets/SystemZ.h"
 #include "Targets/TCE.h"
 #include "Targets/VE.h"
@@ -526,7 +526,7 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
       return std::make_unique<SparcV9TargetInfo>(Triple, Opts);
     }
   case llvm::Triple::spex64:
-    return std::make_unique<targets::SPEX64TargetInfo>(Triple, Opts);
+    return std::make_unique<targets::SPEXTargetInfo>(Triple, Opts);
 
   case llvm::Triple::systemz:
     switch (os) {

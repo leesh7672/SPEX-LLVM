@@ -325,7 +325,7 @@ enum {
   EM_VE = 251,            // NEC SX-Aurora VE
   EM_CSKY = 252,          // C-SKY 32-bit processor
   EM_LOONGARCH = 258,     // LoongArch
-  EM_SPEX64 = 0xC7D3, // SPEX64 (Temporary)
+  EM_SPEX = 0xC7D3, // SPEX (Temporary)
 };
 
 // Object file classes.
@@ -1096,9 +1096,9 @@ enum {
 #include "ELFRelocs/Xtensa.def"
 };
 
-// ELF Relocation types for SPEX64
+// ELF Relocation types for SPEX
 enum {
-#include "ELFRelocs/SPEX64.def"
+#include "ELFRelocs/SPEX.def"
 };
 
 #undef ELF_RELOC

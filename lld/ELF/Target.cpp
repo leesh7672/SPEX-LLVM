@@ -92,8 +92,8 @@ void elf::setTarget(Ctx &ctx) {
     return setSystemZTargetInfo(ctx);
   case EM_X86_64:
     return setX86_64TargetInfo(ctx);
-  case EM_SPEX64:
-    return setSPEX64TargetInfo(ctx);
+  case EM_SPEX:
+    return setSPEXTargetInfo(ctx);
   default:
     Fatal(ctx) << "unsupported e_machine value: " << ctx.arg.emachine;
   }

@@ -1353,7 +1353,7 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
       return "elf64-ve";
     case ELF::EM_LOONGARCH:
       return "elf64-loongarch";
-    case ELF::EM_SPEX64:
+    case ELF::EM_SPEX:
       return "elf64-spex64";
     default:
       return "elf64-unknown";
@@ -1456,7 +1456,7 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
       report_fatal_error("Invalid ELFCLASS!");
     }
 
-  case ELF::EM_SPEX64:
+  case ELF::EM_SPEX:
     return Triple::spex64;
 
   case ELF::EM_XTENSA:

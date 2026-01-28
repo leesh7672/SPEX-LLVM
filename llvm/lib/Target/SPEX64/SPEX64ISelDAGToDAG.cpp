@@ -285,25 +285,29 @@ void SPEX64DAGToDAGISel::Select(SDNode *Node) {
       break;
     }
 
+    // Operand order for machine call nodes must begin with the Chain.
+    // The callee (direct symbol or indirect register) follows, then any
+    // additional operands such as the register mask and argument registers.
     SmallVector<SDValue, 8> Ops;
-    for (unsigned I = 1, E = Node->getNumOperands(); I != E; ++I) {
+    Ops.push_back(Chain);
+    Ops.push_back(Callee);
+
+    for (unsigned I = 2, E = Node->getNumOperands(); I != E; ++I) {
       SDValue Op = Node->getOperand(I);
       if (Op.getValueType() == MVT::Glue) {
         Glue = Op;
         break;
       }
-      if (I == 1)
-        Ops.push_back(Callee);
-      else
-        Ops.push_back(Op);
+      Ops.push_back(Op);
     }
 
     Ops.push_back(Chain);
 
-    // Default: indirect call through a register.
-    unsigned CallOpc = SPEX64::CALL64;
-
-    // Direct calls use the absolute-address form: `call <symbol>`.
+    unsigned CallOpc = SPEX64::CALLR;
+    // Direct calls use the immediate form (CALL). Everything else is an
+    // indirect call through a value (which will be selected into a register),
+    // so must use CALLR to avoid losing the target and encoding an all-zero
+    // immediate.
     if (Callee.getOpcode() == ISD::TargetGlobalAddress ||
         Callee.getOpcode() == ISD::TargetExternalSymbol ||
         Callee.getOpcode() == ISD::TargetConstantPool ||

@@ -10,6 +10,7 @@
 #include "SPEX.h"
 #include "SPEXISelDAGToDAG.h"
 #include "SPEXTargetMachine.h"
+#include "SPEXTargetObjectFile.h"
 
 #include "llvm/CodeGen/RegAllocRegistry.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
@@ -31,7 +32,7 @@ SPEXTargetMachine::SPEXTargetMachine(const Target &T, const Triple &TT,
     : CodeGenTargetMachineImpl(T, SPEXDataLayout, TT, CPU, FS, Options,
                                RM.value_or(Reloc::Static),
                                getEffectiveCodeModel(CM, CodeModel::Small), OL),
-      TLOF(std::make_unique<TargetLoweringObjectFileELF>()),
+      TLOF(std::make_unique<SPEXTargetObjectFile>()),
       Subtarget(TT, CPU, FS, *this) {
   initAsmInfo();
 }

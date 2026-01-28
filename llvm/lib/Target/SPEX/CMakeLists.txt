@@ -23,6 +23,7 @@ add_llvm_target(SPEXCodeGen
   SPEXMCInstLower.cpp
   SPEXTargetMachine.cpp
   SPEXTargetMachineImpl.cpp
+  SPEXTargetObjectFile.cpp
   SPEXSubtarget.cpp
   SPEXInstrInfo.cpp
   SPEXExpandPseudo.cpp

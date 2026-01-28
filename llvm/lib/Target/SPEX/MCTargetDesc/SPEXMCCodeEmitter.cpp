@@ -134,10 +134,57 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
       // For symbolic immediates, always emit a relocation so the linker can
       // resolve it (e.g. `call rmain` in a .o).
       //
-      // Use the generic data fixup kinds so we don't depend on custom fixup
-      // handling for basic absolute addresses.
-      MCFixupKind Kind = I64 ? FK_Data_8 : FK_Data_4;
-      Fixups.push_back(MCFixup::create(/*Offset=*/4, ImmOp->getExpr(), Kind));
+      // Branch instructions already attach their own fixup via
+      // getBranchTargetOpValue(). Avoid emitting a duplicate fixup here.
+      bool IsBranchImm = false;
+      switch (MI.getOpcode()) {
+      case SPEX::JMP32:
+      case SPEX::JMP64:
+      case SPEX::SP32:
+      case SPEX::SP64:
+      case SPEX::BCC_eq_32:
+      case SPEX::BCC_ne_32:
+      case SPEX::BCC_lt_32:
+      case SPEX::BCC_ge_32:
+      case SPEX::BCC_le_32:
+      case SPEX::BCC_gt_32:
+      case SPEX::BCC_ltu_32:
+      case SPEX::BCC_geu_32:
+      case SPEX::BCC_leu_32:
+      case SPEX::BCC_gtu_32:
+      case SPEX::BCC_vs_32:
+      case SPEX::BCC_vc_32:
+      case SPEX::BCC_mi_32:
+      case SPEX::BCC_pl_32:
+      case SPEX::BCC_cs_32:
+      case SPEX::BCC_cc_32:
+      case SPEX::BCC_eq_64:
+      case SPEX::BCC_ne_64:
+      case SPEX::BCC_lt_64:
+      case SPEX::BCC_ge_64:
+      case SPEX::BCC_le_64:
+      case SPEX::BCC_gt_64:
+      case SPEX::BCC_ltu_64:
+      case SPEX::BCC_geu_64:
+      case SPEX::BCC_leu_64:
+      case SPEX::BCC_gtu_64:
+      case SPEX::BCC_vs_64:
+      case SPEX::BCC_vc_64:
+      case SPEX::BCC_mi_64:
+      case SPEX::BCC_pl_64:
+      case SPEX::BCC_cs_64:
+      case SPEX::BCC_cc_64:
+        IsBranchImm = true;
+        break;
+      default:
+        break;
+      }
+      if (!IsBranchImm) {
+        // Use the generic data fixup kinds so we don't depend on custom fixup
+        // handling for basic absolute addresses.
+        MCFixupKind Kind = I64 ? FK_Data_8 : FK_Data_4;
+        Fixups.push_back(MCFixup::create(/*Offset=*/4, ImmOp->getExpr(), Kind));
+      }
     }
   }
 
@@ -161,8 +208,36 @@ SPEXMCCodeEmitter::getBranchTargetOpValue(const MCInst &MI, const MCOperand &MO,
 
   if (MO.isExpr()) {
     // Absolute address stored in the extension word(s) at byte offset +4.
-    Fixups.push_back(MCFixup::create(4, MO.getExpr(),
-                                     (MCFixupKind)SPEX::fixup_spex64_64));
+    // Use 32- vs 64-bit fixup depending on the instruction encoding.
+    bool Is64 = true;
+    switch (MI.getOpcode()) {
+    case SPEX::JMP32:
+    case SPEX::SP32:
+    case SPEX::BCC_eq_32:
+    case SPEX::BCC_ne_32:
+    case SPEX::BCC_lt_32:
+    case SPEX::BCC_ge_32:
+    case SPEX::BCC_le_32:
+    case SPEX::BCC_gt_32:
+    case SPEX::BCC_ltu_32:
+    case SPEX::BCC_geu_32:
+    case SPEX::BCC_leu_32:
+    case SPEX::BCC_gtu_32:
+    case SPEX::BCC_vs_32:
+    case SPEX::BCC_vc_32:
+    case SPEX::BCC_mi_32:
+    case SPEX::BCC_pl_32:
+    case SPEX::BCC_cs_32:
+    case SPEX::BCC_cc_32:
+      Is64 = false;
+      break;
+    default:
+      break;
+    }
+    MCFixupKind Kind =
+        Is64 ? (MCFixupKind)SPEX::fixup_spex64_64
+             : (MCFixupKind)SPEX::fixup_spex64_32;
+    Fixups.push_back(MCFixup::create(4, MO.getExpr(), Kind));
     return 0;
   }
 

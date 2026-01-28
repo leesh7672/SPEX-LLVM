@@ -79,6 +79,10 @@ MCOperand SPEXMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
 void SPEXMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
   OutMI.setOpcode(MI->getOpcode());
 
+  const MCInstrDesc &Desc = MI->getDesc();
+  const unsigned ExpectedOps = Desc.getNumOperands();
+  unsigned OpIdx = 0;
+
   // Do not silently lower pseudos/target-independent opcodes to garbage.
   if (MI->isPseudo()) {
     MI->print(errs());
@@ -94,18 +98,21 @@ void SPEXMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
   }
 
   for (const MachineOperand &MO : MI->operands()) {
+    if (MO.isImplicit())
+      continue;
+    if (MO.isRegMask())
+      continue;
+    if (OpIdx >= ExpectedOps)
+      continue;
+
     MCOperand MCOp;
     switch (MO.getType()) {
     default:
       MI->print(errs());
       report_fatal_error("SPEX: unknown operand type");
     case MachineOperand::MO_Register:
-      if (MO.isImplicit())
-        continue;
       MCOp = MCOperand::createReg(MO.getReg());
       break;
-    case MachineOperand::MO_RegisterMask:
-      continue;
     case MachineOperand::MO_Immediate:
       MCOp = MCOperand::createImm(MO.getImm());
       break;
@@ -130,5 +137,6 @@ void SPEXMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
       break;
     }
     OutMI.addOperand(MCOp);
+    ++OpIdx;
   }
 }

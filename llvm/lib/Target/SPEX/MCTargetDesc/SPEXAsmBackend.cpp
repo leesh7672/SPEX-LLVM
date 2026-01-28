@@ -16,8 +16,6 @@
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/MC/MCValue.h"
 #include "llvm/MC/TargetRegistry.h"
-#include "llvm/Support/Endian.h"
-#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace llvm {
@@ -126,10 +124,10 @@ public:
 
   unsigned getRelocType(const MCFixup &Fixup) const {
     switch (Fixup.getKind()) {
-    case (MCFixupKind)SPEX::fixup_spex64_32:
+    case SPEX::fixup_spex64_32:
     case FK_Data_4:
       return ELF::R_SPEX_32;
-    case (MCFixupKind)SPEX::fixup_spex64_64:
+    case SPEX::fixup_spex64_64:
     case FK_Data_8:
       return ELF::R_SPEX_64;
     default:

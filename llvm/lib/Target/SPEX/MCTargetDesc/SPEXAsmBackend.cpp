@@ -35,8 +35,7 @@ public:
     return createSPEXELFObjectTargetWriter(OSABI);
   }
 
-  bool shouldForceRelocation(const MCAssembler &, const MCFixup &Fixup,
-                             const MCValue &) const override {
+  static bool shouldForceRelocation(const MCFixup &Fixup) {
     // Keep relocations for absolute-address fixups in .o so the linker can
     // resolve symbols (e.g. calls/branches and address materialization).
     // This is important for external/undefined symbols during assembly.
@@ -51,24 +50,12 @@ public:
     }
   }
 
-  bool needsRelocateWithSymbol(const MCValue &, const MCFixup &Fixup) const override {
-    switch (Fixup.getKind()) {
-    case FK_Data_4:
-    case FK_Data_8:
-    case (MCFixupKind)SPEX::fixup_spex64_32:
-    case (MCFixupKind)SPEX::fixup_spex64_64:
-      return true;
-    default:
-      return false;
-    }
-  }
-
   void applyFixup(const MCFragment &Fragment, const MCFixup &Fixup,
                   const MCValue &Target, uint8_t *Data, uint64_t Value,
                   bool IsResolved) override {
-    (void)IsResolved;
-
-    (void)Fragment;
+    if (shouldForceRelocation(Fixup))
+      IsResolved = false;
+    maybeAddReloc(Fragment, Fixup, Target, Value, IsResolved);
 
     const MCFixupKindInfo &Info = getFixupKindInfo(Fixup.getKind());
     if (Info.TargetSize == 0)

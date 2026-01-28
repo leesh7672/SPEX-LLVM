@@ -22,6 +22,17 @@ public:
                                 /*HasRelocationAddend=*/true) {}
   ~SPEXELFObjectWriter() override = default;
 
+  bool needsRelocateWithSymbol(const MCValue &,
+                               unsigned Type) const override {
+    switch (Type) {
+    case ELF::R_SPEX_32:
+    case ELF::R_SPEX_64:
+      return true;
+    default:
+      return false;
+    }
+  }
+
 protected:
   unsigned getRelocType(const MCFixup &Fixup, const MCValue &,
                         bool) const override {

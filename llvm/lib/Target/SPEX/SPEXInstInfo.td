@@ -89,6 +89,9 @@ class SPEXInst<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,
   let K9 = 0;
   let imm = 0;
   let target = 0;
+  // TSFlags bit 0 = i64 (immediate width), bit 1 = i1 (has immediate).
+  let TSFlags{0} = i64;
+  let TSFlags{1} = i1;
 }
 
 class SPEXInstNoR6<string asmstr, dag outs, dag ins, bits<12> opc, bits<1> x1,

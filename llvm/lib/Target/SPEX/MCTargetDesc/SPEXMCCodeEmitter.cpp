@@ -29,6 +29,9 @@ namespace {
 
 class SPEXMCCodeEmitter : public MCCodeEmitter {
   MCContext &Ctx;
+  const MCInstrInfo &MCII;
+  static constexpr uint64_t SPEXII_I64 = 1ull << 0;
+  static constexpr uint64_t SPEXII_I1  = 1ull << 1;
 
   uint64_t getBinaryCodeForInstr(const MCInst &MI,
                                  SmallVectorImpl<MCFixup> &Fixups,
@@ -42,7 +45,8 @@ class SPEXMCCodeEmitter : public MCCodeEmitter {
                                   const MCSubtargetInfo &STI) const;
 
 public:
-  SPEXMCCodeEmitter(MCContext &Ctx, const MCInstrInfo &) : Ctx(Ctx) {}
+  SPEXMCCodeEmitter(MCContext &Ctx, const MCInstrInfo &MCII)
+      : Ctx(Ctx), MCII(MCII) {}
   ~SPEXMCCodeEmitter() override = default;
 
   void encodeInstruction(const MCInst &MI, SmallVectorImpl<char> &CB,
@@ -136,49 +140,9 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
       //
       // Branch instructions already attach their own fixup via
       // getBranchTargetOpValue(). Avoid emitting a duplicate fixup here.
-      bool IsBranchImm = false;
-      switch (MI.getOpcode()) {
-      case SPEX::JMP32:
-      case SPEX::JMP64:
-      case SPEX::SP32:
-      case SPEX::SP64:
-      case SPEX::BCC_eq_32:
-      case SPEX::BCC_ne_32:
-      case SPEX::BCC_lt_32:
-      case SPEX::BCC_ge_32:
-      case SPEX::BCC_le_32:
-      case SPEX::BCC_gt_32:
-      case SPEX::BCC_ltu_32:
-      case SPEX::BCC_geu_32:
-      case SPEX::BCC_leu_32:
-      case SPEX::BCC_gtu_32:
-      case SPEX::BCC_vs_32:
-      case SPEX::BCC_vc_32:
-      case SPEX::BCC_mi_32:
-      case SPEX::BCC_pl_32:
-      case SPEX::BCC_cs_32:
-      case SPEX::BCC_cc_32:
-      case SPEX::BCC_eq_64:
-      case SPEX::BCC_ne_64:
-      case SPEX::BCC_lt_64:
-      case SPEX::BCC_ge_64:
-      case SPEX::BCC_le_64:
-      case SPEX::BCC_gt_64:
-      case SPEX::BCC_ltu_64:
-      case SPEX::BCC_geu_64:
-      case SPEX::BCC_leu_64:
-      case SPEX::BCC_gtu_64:
-      case SPEX::BCC_vs_64:
-      case SPEX::BCC_vc_64:
-      case SPEX::BCC_mi_64:
-      case SPEX::BCC_pl_64:
-      case SPEX::BCC_cs_64:
-      case SPEX::BCC_cc_64:
-        IsBranchImm = true;
-        break;
-      default:
-        break;
-      }
+      const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
+      const bool IsBranchImm =
+          Desc.isBranch() && ((Desc.TSFlags & SPEXII_I1) != 0);
       if (!IsBranchImm) {
         // Use the generic data fixup kinds so we don't depend on custom fixup
         // handling for basic absolute addresses.
@@ -208,32 +172,9 @@ SPEXMCCodeEmitter::getBranchTargetOpValue(const MCInst &MI, const MCOperand &MO,
 
   if (MO.isExpr()) {
     // Absolute address stored in the extension word(s) at byte offset +4.
-    // Use 32- vs 64-bit fixup depending on the instruction encoding.
-    bool Is64 = true;
-    switch (MI.getOpcode()) {
-    case SPEX::JMP32:
-    case SPEX::SP32:
-    case SPEX::BCC_eq_32:
-    case SPEX::BCC_ne_32:
-    case SPEX::BCC_lt_32:
-    case SPEX::BCC_ge_32:
-    case SPEX::BCC_le_32:
-    case SPEX::BCC_gt_32:
-    case SPEX::BCC_ltu_32:
-    case SPEX::BCC_geu_32:
-    case SPEX::BCC_leu_32:
-    case SPEX::BCC_gtu_32:
-    case SPEX::BCC_vs_32:
-    case SPEX::BCC_vc_32:
-    case SPEX::BCC_mi_32:
-    case SPEX::BCC_pl_32:
-    case SPEX::BCC_cs_32:
-    case SPEX::BCC_cc_32:
-      Is64 = false;
-      break;
-    default:
-      break;
-    }
+    // Use 32- vs 64-bit fixup depending on the instruction encoding bit.
+    const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
+    const bool Is64 = (Desc.TSFlags & SPEXII_I64) != 0;
     MCFixupKind Kind =
         Is64 ? (MCFixupKind)SPEX::fixup_spex64_64
              : (MCFixupKind)SPEX::fixup_spex64_32;

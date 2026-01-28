@@ -24,21 +24,6 @@ class SPEXAsmBackend : public MCAsmBackend {
   Triple::OSType OSType;
 
 public:
-  bool shouldForceRelocation(const MCFixup &Fixup, const MCValue &Target) {
-    (void)Target;
-    // Keep relocations for these fixups in .o so that the linker can
-    // resolve absolute addresses (calls, branches, and address
-    // materialization).
-    switch (Fixup.getKind()) {
-    case (MCFixupKind)SPEX::fixup_spex64_32:
-    case (MCFixupKind)SPEX::fixup_spex64_64:
-    case FK_Data_4:
-    case FK_Data_8:
-      return true;
-    default:
-      return false;
-    }
-  }
 
   explicit SPEXAsmBackend(const MCSubtargetInfo &STI)
       : MCAsmBackend(endianness::little),
@@ -51,10 +36,10 @@ public:
   }
 
   bool shouldForceRelocation(const MCAssembler &, const MCFixup &Fixup,
-                             const MCValue &) const {
-    // Allow the assembler to resolve absolute fixups when the target is known
-    // at assembly time (e.g. intra-section symbols). This avoids depending on
-    // the linker to apply target-specific relocations for simple ROM images.
+                             const MCValue &) const override {
+    // Keep relocations for absolute-address fixups in .o so the linker can
+    // resolve symbols (e.g. calls/branches and address materialization).
+    // This is important for external/undefined symbols during assembly.
     switch (Fixup.getKind()) {
     case FK_Data_4:
     case FK_Data_8:
@@ -66,8 +51,16 @@ public:
     }
   }
 
-  bool needsRelocateWithSymbol(const MCValue &, const MCFixup &) const {
-    return false;
+  bool needsRelocateWithSymbol(const MCValue &, const MCFixup &Fixup) const override {
+    switch (Fixup.getKind()) {
+    case FK_Data_4:
+    case FK_Data_8:
+    case (MCFixupKind)SPEX::fixup_spex64_32:
+    case (MCFixupKind)SPEX::fixup_spex64_64:
+      return true;
+    default:
+      return false;
+    }
   }
 
   void applyFixup(const MCFragment &Fragment, const MCFixup &Fixup,

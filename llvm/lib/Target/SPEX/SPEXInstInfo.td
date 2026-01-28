@@ -264,16 +264,17 @@ def BCC_cc_64 : SPEXBCCInst<"bcc-cc\t$target", (outs),
 }
 
 // jmp / call / sp
-let isBranch = 1, isTerminator = 1, isBarrier = 1, isIndirectBranch = 1 in
-def JMP_R : SPEXInst<"jmp\t$r6", (outs), (ins GPR:$r6), 0x200, 0, 0b00, 0, 0>;
-
-let isBranch = 1, isTerminator = 1, isBarrier = 1 in
-def JMP32 : SPEXInstNoR6<"jmp	$target", (outs), (ins brtarget:$target),
-                           0x200, 0, 0b00, 1, 0> {
+// Register-indirect jumps. The suffix (32/64) indicates the register width.
+let isBranch = 1, isTerminator = 1, isBarrier = 1, isIndirectBranch = 1 in {
+def JMP32 : SPEXInst<"jmp32\t$r6", (outs), (ins GPR:$r6), 0x200, 0, 0b10, 0, 0>;
+def JMP64 : SPEXInst<"jmp64\t$r6", (outs), (ins GPR:$r6), 0x200, 0, 0b11, 0, 0>;
 }
+
+// Absolute-address jump (inline immediate address). This is what plain `jmp`
+// in assembly means.
 let isBranch = 1, isTerminator = 1, isBarrier = 1 in
-def JMP64 : SPEXInstNoR6<"jmp	$target", (outs), (ins brtarget:$target),
-                           0x200, 0, 0b00, 1, 1> {
+def JMP : SPEXInstNoR6<"jmp\t$target", (outs), (ins brtarget:$target),
+                       0x200, 0, 0b00, 1, 1> {
 }
 
 let isCall = 1, Defs = [LR] in

@@ -334,7 +334,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     SDValue Chain = Node->getOperand(0);
     SDValue Dest = Node->getOperand(1); // BasicBlock
     SDValue Ops[] = {Dest, Chain};
-    SDNode *Br = CurDAG->getMachineNode(SPEX::JMP32, DL, MVT::Other, Ops);
+    SDNode *Br = CurDAG->getMachineNode(SPEX::JMP, DL, MVT::Other, Ops);
     ReplaceNode(Node, Br);
     return;
   }

@@ -616,7 +616,7 @@ bool SPEXInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   }
   case SPEX::PSEUDO_BR: {
     MachineBasicBlock *Dest = MI.getOperand(0).getMBB();
-    BuildMI(MBB, I, DL, get(SPEX::JMP64)).addMBB(Dest);
+    BuildMI(MBB, I, DL, get(SPEX::JMP)).addMBB(Dest);
     MI.eraseFromParent();
     return true;
   }

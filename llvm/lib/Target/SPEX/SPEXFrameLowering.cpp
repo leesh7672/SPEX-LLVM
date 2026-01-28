@@ -11,6 +11,7 @@
 #include "SPEX.h"
 #include "SPEXInstrInfo.h"
 #include "SPEXSubtarget.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
@@ -36,18 +37,56 @@ bool SPEXFrameLowering::hasFPImpl(const MachineFunction &MF) const {
 
 void SPEXFrameLowering::emitPrologue(MachineFunction &MF,
                                      MachineBasicBlock &MBB) const {
-  // No-op for now.
-  // Later: adjust SP, spill callee-saved regs, set FP, etc.
-  (void)MF;
-  (void)MBB;
+  MachineFrameInfo &MFI = MF.getFrameInfo();
+  uint64_t StackSize = MFI.getStackSize();
+
+  // Maintain the target's declared stack alignment.
+  if (StackSize)
+    StackSize = alignTo(StackSize, 16);
+  MFI.setStackSize(StackSize);
+
+  if (!StackSize)
+    return;
+
+  const SPEXSubtarget &ST = MF.getSubtarget<SPEXSubtarget>();
+  const auto &TII = static_cast<const SPEXInstrInfo &>(*ST.getInstrInfo());
+  const auto &TRI = static_cast<const SPEXRegisterInfo &>(*ST.getRegisterInfo());
+  Register SP = TRI.getStackRegister(MF);
+
+  // Insert before everything in the entry block (including spills inserted by
+  // PEI) so all frame references see the adjusted SP.
+  MachineBasicBlock::iterator InsertPt = MBB.begin();
+  DebugLoc DL;
+
+  // SP -= StackSize
+  auto MI = BuildMI(MBB, InsertPt, DL, TII.get(SPEX::PSEUDO_SUB64ri), SP)
+                .addReg(SP)
+                .addImm(StackSize);
+  MI->setFlag(MachineInstr::FrameSetup);
 }
 
 void SPEXFrameLowering::emitEpilogue(MachineFunction &MF,
                                      MachineBasicBlock &MBB) const {
-  // No-op for now.
-  // Later: restore callee-saved regs, restore SP, etc.
-  (void)MF;
-  (void)MBB;
+  const MachineFrameInfo &MFI = MF.getFrameInfo();
+  uint64_t StackSize = MFI.getStackSize();
+  if (!StackSize)
+    return;
+
+  const SPEXSubtarget &ST = MF.getSubtarget<SPEXSubtarget>();
+  const auto &TII = static_cast<const SPEXInstrInfo &>(*ST.getInstrInfo());
+  const auto &TRI = static_cast<const SPEXRegisterInfo &>(*ST.getRegisterInfo());
+  Register SP = TRI.getStackRegister(MF);
+
+  // Insert immediately before the first terminator so restores still use the
+  // current (decremented) SP.
+  MachineBasicBlock::iterator InsertPt = MBB.getFirstTerminator();
+  DebugLoc DL;
+
+  // SP += StackSize
+  auto MI = BuildMI(MBB, InsertPt, DL, TII.get(SPEX::PSEUDO_ADD64ri), SP)
+                .addReg(SP)
+                .addImm(StackSize);
+  MI->setFlag(MachineInstr::FrameDestroy);
 }
 
 bool SPEXFrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
@@ -69,9 +108,7 @@ MachineBasicBlock::iterator SPEXFrameLowering::eliminateCallFramePseudoInstr(
 void SPEXFrameLowering::determineCalleeSaves(MachineFunction &MF,
                                              BitVector &SavedRegs,
                                              RegScavenger *RS) const {
-  // Minimal bring-up: no callee-saved regs are spilled.
-  // If you later define CSR sets and want spills, mark them here.
-  (void)MF;
-  (void)SavedRegs;
-  (void)RS;
+  // Use the generic logic driven by CSR_SPEX (TableGen) and the register
+  // allocator's decisions.
+  TargetFrameLowering::determineCalleeSaves(MF, SavedRegs, RS);
 }

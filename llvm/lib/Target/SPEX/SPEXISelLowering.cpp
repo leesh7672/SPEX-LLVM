@@ -56,6 +56,7 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SRL, MVT::i64, Custom);
   setOperationAction(ISD::SRA, MVT::i32, Custom);
   setOperationAction(ISD::SRA, MVT::i64, Custom);
+  setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
 
   setOperationAction(ISD::BRCOND, MVT::Other, Expand);
   setOperationAction(ISD::SETCC, MVT::i32, Expand);
@@ -117,6 +118,12 @@ const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
 SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
                                            SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
+  case ISD::FrameIndex: {
+    // Legalize raw FrameIndex nodes into target-specific frame indices so they
+    // can be used as operands and later resolved by eliminateFrameIndex.
+    auto *FI = cast<FrameIndexSDNode>(Op.getNode());
+    return DAG.getTargetFrameIndex(FI->getIndex(), MVT::i64);
+  }
   case ISD::BR:
     return LowerBR(Op.getOperand(0), Op.getOperand(1), SDLoc(Op), DAG);
   case ISD::BR_CC:

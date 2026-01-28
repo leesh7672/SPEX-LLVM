@@ -72,10 +72,11 @@ public:
         Info.TargetSize == 64 ? ~0ULL : ((1ULL << Info.TargetSize) - 1);
     Value &= Mask;
 
-    unsigned Offset = Fixup.getOffset();
     unsigned NumBytes = (Info.TargetSize + 7) / 8;
     for (unsigned I = 0; I < NumBytes; ++I) {
-      Data[Offset + I] = static_cast<uint8_t>(Value >> (I * 8));
+      // Per MCAsmBackend's contract, `Data` already points at the fixup offset
+      // within the fragment contents (it is not the fragment base).
+      Data[I] = static_cast<uint8_t>(Value >> (I * 8));
     }
   }
 

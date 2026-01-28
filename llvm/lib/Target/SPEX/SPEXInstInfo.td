@@ -270,7 +270,7 @@ let isCall = 1, Defs = [LR] in
 
 // Absolute-address call (inline immediate address). This is what plain `call`
 // in assembly means.
-def CALL : SPEXInstNoR6<"call\t$target", (outs), (ins brtarget:$target),
+def CALL : SPEXInstNoR6<"call\t$imm", (outs), (ins SPEXImm64:$imm),
                            0x203, 0, 0b00, 1, 1> {
 }
 

@@ -107,5 +107,7 @@ def GPR : RegisterClass<"SPEX", [i64, i32, i16, i8], 64,
 
 def ACC : RegisterClass<"SPEX", [i64, i32, i16, i8], 64, (add RX)>;
 
-def CSR_SPEX : CalleeSavedRegs<(add R16, R17, R18, R19, R20, R21, R22, R23,
-                                      R24, R25, R26, R27, R28, R29, R30, R31)>;
+// In the current SPEX RTL model, the GPR file is core-wide and CALL/RET does
+// not preserve it. Treat all GPRs as caller-saved so LLVM will spill live
+// values across calls as needed.
+def CSR_SPEX : CalleeSavedRegs<(add)>;

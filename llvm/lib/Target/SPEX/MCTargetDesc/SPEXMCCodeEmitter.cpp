@@ -114,13 +114,15 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
 
   uint32_t Imm32 = 0;
   uint64_t Imm64 = 0;
-  if (ImmOp->isImm()) {
+  if (ImmOp) {
+    if (ImmOp->isImm()) {
     Imm64 = static_cast<uint64_t>(ImmOp->getImm());
     Imm32 = static_cast<uint32_t>(Imm64);
-  } else if (ImmOp->isExpr()) {
-    MCFixupKind Kind = (!I64) ? (MCFixupKind)SPEX::fixup_spex64_32
-                              : (MCFixupKind)SPEX::fixup_spex64_64;
-    Fixups.push_back(MCFixup::create(/*Offset=*/4, ImmOp->getExpr(), Kind));
+    } else if (ImmOp->isExpr()) {
+      MCFixupKind Kind = (!I64) ? (MCFixupKind)SPEX::fixup_spex64_32
+                                : (MCFixupKind)SPEX::fixup_spex64_64;
+      Fixups.push_back(MCFixup::create(/*Offset=*/4, ImmOp->getExpr(), Kind));
+    }
   }
 
   support::endian::write(CB, W0, endianness::little);

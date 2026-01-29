@@ -24,7 +24,6 @@ class SPEXAsmBackend : public MCAsmBackend {
   Triple::OSType OSType;
 
 public:
-
   explicit SPEXAsmBackend(const MCSubtargetInfo &STI)
       : MCAsmBackend(endianness::little),
         OSType(STI.getTargetTriple().getOS()) {}

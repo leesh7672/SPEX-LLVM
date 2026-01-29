@@ -8,9 +8,8 @@ void SPEXTargetObjectFile::Initialize(MCContext &Ctx, const TargetMachine &TM) {
   TargetLoweringObjectFileELF::Initialize(Ctx, TM);
 }
 
-MCSection *SPEXTargetObjectFile::SelectSectionForGlobal(const GlobalObject *GO,
-                                                        SectionKind Kind,
-                                                        const TargetMachine &TM) const {
+MCSection *SPEXTargetObjectFile::SelectSectionForGlobal(
+    const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
   if (Kind.isMergeableCString())
     return TargetLoweringObjectFileELF::SelectSectionForGlobal(
         GO, SectionKind::getData(), TM);

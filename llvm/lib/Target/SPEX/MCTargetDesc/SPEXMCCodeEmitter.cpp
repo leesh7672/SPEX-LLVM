@@ -31,7 +31,7 @@ class SPEXMCCodeEmitter : public MCCodeEmitter {
   MCContext &Ctx;
   const MCInstrInfo &MCII;
   static constexpr uint64_t SPEXII_I64 = 1ull << 0;
-  static constexpr uint64_t SPEXII_I1  = 1ull << 1;
+  static constexpr uint64_t SPEXII_I1 = 1ull << 1;
 
   uint64_t getBinaryCodeForInstr(const MCInst &MI,
                                  SmallVectorImpl<MCFixup> &Fixups,
@@ -156,8 +156,8 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
 
 unsigned
 SPEXMCCodeEmitter::getBranchTargetOpValue(const MCInst &MI, const MCOperand &MO,
-                                         SmallVectorImpl<MCFixup> &Fixups,
-                                         const MCSubtargetInfo &STI) const {
+                                          SmallVectorImpl<MCFixup> &Fixups,
+                                          const MCSubtargetInfo &STI) const {
   (void)MI;
   (void)STI;
 
@@ -172,7 +172,6 @@ SPEXMCCodeEmitter::getBranchTargetOpValue(const MCInst &MI, const MCOperand &MO,
 
   llvm_unreachable("Unexpected operand kind in branch target");
 }
-
 
 } // namespace
 

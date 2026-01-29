@@ -50,7 +50,8 @@ void SPEXFrameLowering::emitPrologue(MachineFunction &MF,
 
   const SPEXSubtarget &ST = MF.getSubtarget<SPEXSubtarget>();
   const auto &TII = static_cast<const SPEXInstrInfo &>(*ST.getInstrInfo());
-  const auto &TRI = static_cast<const SPEXRegisterInfo &>(*ST.getRegisterInfo());
+  const auto &TRI =
+      static_cast<const SPEXRegisterInfo &>(*ST.getRegisterInfo());
   Register SP = TRI.getStackRegister(MF);
 
   // Insert before everything in the entry block (including spills inserted by
@@ -74,7 +75,8 @@ void SPEXFrameLowering::emitEpilogue(MachineFunction &MF,
 
   const SPEXSubtarget &ST = MF.getSubtarget<SPEXSubtarget>();
   const auto &TII = static_cast<const SPEXInstrInfo &>(*ST.getInstrInfo());
-  const auto &TRI = static_cast<const SPEXRegisterInfo &>(*ST.getRegisterInfo());
+  const auto &TRI =
+      static_cast<const SPEXRegisterInfo &>(*ST.getRegisterInfo());
   Register SP = TRI.getStackRegister(MF);
 
   // Insert immediately before the first terminator so restores still use the

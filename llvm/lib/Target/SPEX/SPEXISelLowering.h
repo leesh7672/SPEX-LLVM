@@ -63,6 +63,8 @@ public:
                     SmallVectorImpl<SDValue> &InVals) const override;
 
   const char *getTargetNodeName(unsigned Opcode) const override;
+  EVT getSetCCResultType(const DataLayout &DL, LLVMContext &Context,
+                         EVT VT) const override;
 
 private:
   SDValue lowerCallResult(SDValue Chain, SDValue InGlue, const SDLoc &DL,

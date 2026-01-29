@@ -57,12 +57,20 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SRA, MVT::i32, Custom);
   setOperationAction(ISD::SRA, MVT::i64, Custom);
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
-
   setOperationAction(ISD::BRCOND, MVT::Other, Expand);
+
+  setOperationAction(ISD::SETCC, MVT::i8, Expand);
+  setOperationAction(ISD::SETCC, MVT::i16, Expand);
   setOperationAction(ISD::SETCC, MVT::i32, Expand);
   setOperationAction(ISD::SETCC, MVT::i64, Expand);
+
+  setOperationAction(ISD::SELECT, MVT::i8, Expand);
+  setOperationAction(ISD::SELECT, MVT::i16, Expand);
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   setOperationAction(ISD::SELECT, MVT::i64, Expand);
+
+  setOperationAction(ISD::SELECT_CC, MVT::i8, Expand);
+  setOperationAction(ISD::SELECT_CC, MVT::i16, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::i32, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::i64, Expand);
 
@@ -460,4 +468,9 @@ SDValue SPEXTargetLowering::lowerCallResult(
   InVals.push_back(Val);
 
   return Chain;
+}
+
+EVT SPEXTargetLowering::getSetCCResultType(const DataLayout &DL,
+                                           LLVMContext &Context, EVT VT) const {
+  return MVT::i64;
 }

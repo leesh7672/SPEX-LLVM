@@ -10,6 +10,7 @@
 #define LLVM_LIB_TARGET_SPEX_SPEXSUBTARGET_H
 
 #include "SPEXFrameLowering.h"
+#include "SPEXSelectionDAGInfo.h"
 #include "SPEXISelLowering.h"
 #include "SPEXInstrInfo.h"
 
@@ -33,6 +34,7 @@ private:
   SPEXInstrInfo InstrInfo;
   SPEXFrameLowering FrameLowering;
   SPEXTargetLowering TLInfo;
+  SPEXSelectionDAGInfo TSInfo;
 
 public:
   SPEXSubtarget(const Triple &TT, StringRef CPU, StringRef FS,
@@ -46,6 +48,9 @@ public:
 
   const TargetInstrInfo *getInstrInfo() const override { return &InstrInfo; }
   const TargetRegisterInfo *getRegisterInfo() const override;
+  const SelectionDAGTargetInfo *getSelectionDAGInfo() const override {
+    return &TSInfo;
+  }
   const TargetFrameLowering *getFrameLowering() const override {
     return &FrameLowering;
   }

@@ -77,6 +77,10 @@ MCOperand SPEXMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
 }
 
 void SPEXMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
+  
+  if (MI->isDebugInstr())
+    return;
+
   OutMI.setOpcode(MI->getOpcode());
 
   const MCInstrDesc &Desc = MI->getDesc();
@@ -98,7 +102,9 @@ void SPEXMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
   }
 
   for (const MachineOperand &MO : MI->operands()) {
-    if (MO.isImplicit())
+    if (MO.isMetadata())
+      continue;
+    if (MO.isReg() && MO.isImplicit())
       continue;
     if (MO.isRegMask())
       continue;

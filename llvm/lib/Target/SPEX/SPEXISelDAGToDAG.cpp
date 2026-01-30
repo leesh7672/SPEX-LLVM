@@ -66,7 +66,7 @@ bool SPEXDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base,
   // additional legalization.
   if (auto *CN = dyn_cast<ConstantSDNode>(Addr)) {
     SDValue Imm = CurDAG->getTargetConstant(CN->getSExtValue(), DL, MVT::i64);
-    SDNode *Li = CurDAG->getMachineNode(SPEX::PSEUDO_LI64, DL, MVT::i64, Imm);
+    SDNode *Li = CurDAG->getMachineNode(SPEX::PSEUDO_LI64, DL, MVT::i64, APInt(64, Imm, true));
     Base = SDValue(Li, 0);
     Offset = CurDAG->getTargetConstant(0, DL, MVT::i32);
     return true;
@@ -355,21 +355,22 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     // cmp{32,64} rx, RHS (reg or imm)
     unsigned CmpOpc = 0;
     SmallVector<SDValue, 4> CmpOps;
+
     if (auto *CN = dyn_cast<ConstantSDNode>(RHS)) {
       int64_t Imm = CN->getSExtValue();
       if (Is64) {
         // Prefer I32 form when it fits.
         if (isInt<32>(Imm)) {
           CmpOpc = SPEX::CMP64_I32;
-          CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
+          CmpOps.push_back(CurDAG->getTargetConstant(APInt(32, Imm, true), DL, MVT::i32));
         } else {
           CmpOpc = SPEX::CMP64_I64;
-          CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i64));
+          CmpOps.push_back(CurDAG->getTargetConstant(APInt(64, Imm, true), DL, MVT::i64));
         }
       } else {
         // i32 compare
         CmpOpc = SPEX::CMP32_I32;
-        CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
+        CmpOps.push_back(CurDAG->getTargetConstant(APInt(32, Imm, true), DL, MVT::i32));
       }
     } else {
       CmpOpc = Is64 ? SPEX::CMP64_R : SPEX::CMP32_R;

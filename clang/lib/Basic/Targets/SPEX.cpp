@@ -12,11 +12,16 @@
 #include "clang/Basic/TargetBuiltins.h"
 #include "llvm/ADT/StringRef.h"
 
+// Little-endian, ELF mangling, 64-bit pointers.
+// Keep in sync with llvm/lib/Target/SPEX/SPEXTargetMachineImpl.cpp.
+static constexpr char SPEXDataLayout[] =
+    "e-m:e-p:64:64-i64:64-i128:128-n8:16:32:64-S128";
+
 namespace clang {
 namespace targets {
 
 void SPEXTargetInfo::getTargetDefines(const LangOptions &Opts,
-                                        MacroBuilder &Builder) const {
+                                      MacroBuilder &Builder) const {
   // Generic
   Builder.defineMacro("__ELF__");
 
@@ -31,14 +36,9 @@ void SPEXTargetInfo::getTargetDefines(const LangOptions &Opts,
 }
 
 SPEXTargetInfo::SPEXTargetInfo(const llvm::Triple &Triple,
-                                   const TargetOptions &Opts)
+                               const TargetOptions &Opts)
     : TargetInfo(Triple) {
-  // CPU/ABI: keep minimal and strict first.
-  // If you later introduce variants, hook them here.
-  resetDataLayout(
-      // Little-endian, ELF mangling, 64-bit pointers.
-      // Keep in sync with llvm/lib/Target/SPEX/SPEXTargetMachineImpl.cpp.
-      "e-m:e-p:64:64-i64:64-n8:16:32:64-S128");
+  resetDataLayout(SPEXDataLayout);
 
   // Fundamental sizes
   PointerWidth = 64;
@@ -94,8 +94,7 @@ bool SPEXTargetInfo::validateAsmConstraint(
   return true;
 }
 
-ArrayRef<TargetInfo::GCCRegAlias>
-SPEXTargetInfo::getGCCRegAliases() const {
+ArrayRef<TargetInfo::GCCRegAlias> SPEXTargetInfo::getGCCRegAliases() const {
   return {};
 }
 

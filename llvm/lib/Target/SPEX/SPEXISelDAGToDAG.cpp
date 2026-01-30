@@ -66,7 +66,7 @@ bool SPEXDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base,
   // additional legalization.
   if (auto *CN = dyn_cast<ConstantSDNode>(Addr)) {
     SDValue Imm = CurDAG->getTargetConstant(CN->getSExtValue(), DL, MVT::i64);
-    SDNode *Li = CurDAG->getMachineNode(SPEX::PSEUDO_LI64, DL, MVT::i64, APInt(64, Imm, true));
+    SDNode *Li = CurDAG->getMachineNode(SPEX::PSEUDO_LI64, DL, MVT::i64, Imm);
     Base = SDValue(Li, 0);
     Offset = CurDAG->getTargetConstant(0, DL, MVT::i32);
     return true;

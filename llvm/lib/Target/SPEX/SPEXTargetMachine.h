@@ -36,7 +36,7 @@ public:
   ~SPEXTargetMachine() override;
 
   TargetPassConfig *createPassConfig(PassManagerBase &PM) override;
- 
+
   const SPEXSubtarget *getSubtargetImpl(const Function &) const override {
     return &Subtarget;
   }

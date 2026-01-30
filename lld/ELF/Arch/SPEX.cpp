@@ -29,7 +29,7 @@ public:
 } // namespace
 
 RelExpr SPEX::getRelExpr(RelType type, const Symbol &s,
-                         const uint8_t *loc) const {
+                           const uint8_t *loc) const {
   switch (type) {
   case R_SPEX_NONE:
     return R_NONE;
@@ -43,7 +43,8 @@ RelExpr SPEX::getRelExpr(RelType type, const Symbol &s,
   }
 }
 
-void SPEX::relocate(uint8_t *loc, const Relocation &rel, uint64_t val) const {
+void SPEX::relocate(uint8_t *loc, const Relocation &rel,
+                      uint64_t val) const {
   switch (rel.type) {
   case R_SPEX_NONE:
     return;

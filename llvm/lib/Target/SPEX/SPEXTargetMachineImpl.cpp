@@ -20,8 +20,8 @@
 
 using namespace llvm;
 
-static constexpr const char *SPEXDataLayout =
-    "e-m:e-p:64:64-i64:64-n8:16:32:64-S128";
+static constexpr char SPEXDataLayout[] =
+  "e-m:e-p:64:64-i64:64-i128:128-n64-S128";
 
 SPEXTargetMachine::SPEXTargetMachine(const Target &T, const Triple &TT,
                                      StringRef CPU, StringRef FS,

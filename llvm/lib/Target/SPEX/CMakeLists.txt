@@ -22,6 +22,7 @@ add_llvm_target(SPEXCodeGen
   SPEXAsmPrinter.cpp
   SPEXMCInstLower.cpp
   SPEXTargetMachine.cpp
+  SPEXSelectionDAGInfo.cpp
   SPEXTargetMachineImpl.cpp
   SPEXTargetObjectFile.cpp
   SPEXSubtarget.cpp

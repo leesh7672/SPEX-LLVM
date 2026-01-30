@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-
+#define DEBUG_TYPE "spex-subtarget"
 #include "SPEXSubtarget.h"
 
 using namespace llvm;

@@ -31,7 +31,7 @@ SPEXTargetMachine::SPEXTargetMachine(const Target &T, const Triple &TT,
                                      CodeGenOptLevel OL, bool JIT)
     : CodeGenTargetMachineImpl(T, SPEXDataLayout, TT, CPU, FS, Options,
                                RM.value_or(Reloc::Static),
-                               getEffectiveCodeModel(CM, CodeModel::Small), OL),
+                               getEffectiveCodeModel(CM, CodeModel::Small), OL, JIT),
       TLOF(std::make_unique<SPEXTargetObjectFile>()),
       Subtarget(TT, CPU, FS, *this) {
   initAsmInfo();

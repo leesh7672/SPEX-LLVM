@@ -59,20 +59,27 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
   setOperationAction(ISD::BRCOND, MVT::Other, Expand);
 
+  setOperationAction(ISD::SETCC, MVT::i1, Expand);
   setOperationAction(ISD::SETCC, MVT::i8, Expand);
   setOperationAction(ISD::SETCC, MVT::i16, Expand);
   setOperationAction(ISD::SETCC, MVT::i32, Expand);
   setOperationAction(ISD::SETCC, MVT::i64, Expand);
 
+  setOperationAction(ISD::SELECT, MVT::i1, Expand);
   setOperationAction(ISD::SELECT, MVT::i8, Expand);
   setOperationAction(ISD::SELECT, MVT::i16, Expand);
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   setOperationAction(ISD::SELECT, MVT::i64, Expand);
 
+  setOperationAction(ISD::SELECT_CC, MVT::i1, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::i8, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::i16, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::i32, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::i64, Expand);
+
+  setOperationAction(ISD::XOR, MVT::i1, Expand);
+  setOperationAction(ISD::AND, MVT::i1, Expand);
+  setOperationAction(ISD::OR, MVT::i1, Expand);
 
   setBooleanContents(ZeroOrOneBooleanContent);
 
@@ -460,7 +467,13 @@ SDValue SPEXTargetLowering::lowerCallResult(
   if (Ins.size() > 1)
     report_fatal_error("SPEX: multiple return values not supported");
 
-  SDValue Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
+  SDValue Copy;
+  if (InGlue.getNode()) {
+    Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
+  } else {
+    Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
+  }
+
   Chain = Copy.getValue(1);
   SDValue Val = Copy;
   if (Ins[0].VT != MVT::i64)

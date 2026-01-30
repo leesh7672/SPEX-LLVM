@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-
+#define DEBUG_TYPE "spex-disassembler"
 #include "../MCTargetDesc/SPEXMCTargetDesc.h"
 #include "../TargetInfo/SPEXTargetInfo.h"
 #include "llvm/MC/MCDecoder.h"

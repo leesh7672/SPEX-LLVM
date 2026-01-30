@@ -13,6 +13,7 @@ namespace llvm {
 class SPEXTargetMachine;
 } // namespace llvm
 
+#include "SPEXSelectionDAGInfo.h"
 #include "SPEXSubtarget.h"
 #include "llvm/CodeGen/CodeGenTargetMachineImpl.h"
 #include "llvm/IR/DataLayout.h"
@@ -35,7 +36,7 @@ public:
   ~SPEXTargetMachine() override;
 
   TargetPassConfig *createPassConfig(PassManagerBase &PM) override;
-
+ 
   const SPEXSubtarget *getSubtargetImpl(const Function &) const override {
     return &Subtarget;
   }

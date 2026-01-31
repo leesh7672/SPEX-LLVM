@@ -37,6 +37,12 @@ public:
   bool SelectAddrRR(SDValue Addr, SDValue &Base, SDValue &Index);
   void Select(SDNode *Node) override;
 
+  void PostprocessISelDAG() override p{
+    llvm::errs() << "[SPEX] PostprocessISelDAG: reset nodeids\n";
+    for (SDNode &N : CurDAG->allnodes())
+      N.setNodeId(-1);
+  }
+
 #define GET_DAGISEL_DECL
 #include "SPEXGenDAGISel.inc"
 };

@@ -200,6 +200,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     }
     SDNode *Res = CurDAG->getMachineNode(SPEX::PSEUDO_LI64, DL, MVT::i64, Addr);
     ReplaceNode(Node, Res);
+    Res->setNodeId(-1);
     return;
   }
 
@@ -239,6 +240,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SDNode *Res = CurDAG->getMachineNode(Opc, DL, VT, Imm);
     ReplaceNode(Node, Res);
+    Res->setNodeId(-1);
     return;
   }
 
@@ -266,6 +268,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     SDNode *Res =
         CurDAG->getMachineNode(PseudoOpc, DL, VT, Node->getOperand(0), Amt);
     ReplaceNode(Node, Res);
+    Res->setNodeId(-1);
     return;
   }
 

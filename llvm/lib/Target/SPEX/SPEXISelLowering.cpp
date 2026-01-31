@@ -448,14 +448,9 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     Ops.push_back(InGlue);
 
   Chain = DAG.getNode(SPEXISD::CALL, DL, NodeTys, Ops);
-  Ops.push_back(InGlue);
-
   Chain = DAG.getCALLSEQ_END(Chain, NumBytes, 0, InGlue, DL);
-  if (Chain.getNode()->getNumValues() > 1) {
-    InGlue = Chain.getValue(1);
-  }else{
-    InGlue = SDValue();
-  }
+  InGlue = Chain.getValue(1);
+  
 
   SDValue ResultChain =
       lowerCallResult(Chain, InGlue, DL, CLI.Ins, DAG, InVals);

@@ -398,11 +398,7 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     continue;
   }
 
-  SDValue InGlue;
-  for (const auto &RegArg : RegsToPass) {
-    Chain = DAG.getCopyToReg(Chain, DL, RegArg.first, RegArg.second, InGlue);
-    InGlue = Chain.getValue(1);
-  }
+  SDValue Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
 
   SDValue Target;
   switch (Callee.getOpcode()) {
@@ -444,8 +440,7 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   for (const auto &RegArg : RegsToPass)
     Ops.push_back(DAG.getRegister(RegArg.first, RegArg.second.getValueType()));
 
-  if (InGlue.getNode())
-    Ops.push_back(InGlue);
+  Ops.push_back(InGlue);
 
   Chain = DAG.getCALLSEQ_END(Chain, NumBytes, 0, InGlue, DL);
   if (Chain.getNode()->getNumValues() > 1) {
@@ -468,12 +463,7 @@ SDValue SPEXTargetLowering::lowerCallResult(
   if (Ins.size() > 1)
     report_fatal_error("SPEX: multiple return values not supported");
 
-  SDValue Copy;
-  if (InGlue.getNode()) {
-    Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
-  } else {
-    Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
-  }
+  SDValue Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
 
   Chain = Copy.getValue(1);
   SDValue Val = Copy;

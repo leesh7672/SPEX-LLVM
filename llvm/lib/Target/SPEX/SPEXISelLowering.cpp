@@ -116,14 +116,6 @@ SPEXTargetLowering::LegalizeKind SPEXTargetLowering::getTypeConversion(LLVMConte
   return this->TargetLowering::getTypeConversion(ctx, VT);
 }
 
-EVT SPEXTargetLowering::getTypeToTransformTo(LLVMContext &ctx, EVT VT) const{
-  if (VT == MVT::i1){
-    return MVT::i32;
-  }
-  return this->TargetLowering::getTypeToTransformTo(ctx, VT);
-}
-
-
 const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
   case SPEXISD::CALL:

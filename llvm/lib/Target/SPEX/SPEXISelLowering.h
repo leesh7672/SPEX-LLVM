@@ -66,8 +66,6 @@ public:
 
   LegalizeKind getTypeConversion(LLVMContext &ctx, EVT VT);
 
-  EVT getTypeToTransformTo(LLVMContext &ctx, EVT VT) const override;
-
   EVT getSetCCResultType(const DataLayout &DL, LLVMContext &Context,
                          EVT VT) const override;
 

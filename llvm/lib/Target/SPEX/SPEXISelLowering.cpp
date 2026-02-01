@@ -372,7 +372,7 @@ SDValue SPEXTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
   SDValue Dest = N->getOperand(2);
 
   EVT CondVT = Cond.getValueType();
-  if (CondVT == MVT::i1){
+  if (CondVT == MVT::i1) {
     Cond = DAG.getNode(ISD::ZERO_EXTEND, DL, MVT::i8, Cond);
     CondVT = MVT::i8;
   }

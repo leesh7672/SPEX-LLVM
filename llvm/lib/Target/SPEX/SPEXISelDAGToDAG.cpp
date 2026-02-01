@@ -347,6 +347,13 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
   case SPEXISD::BR_CC: {
     SDLoc DL(Node);
 
+    unsigned I = 0;
+    SDValue InGlue;
+    if (Node->getOperand(0).getValueType() == MVT::Glue) {
+      InGlue = Node->getOperand(0);
+      I = 1;
+    }
+
     SDValue Chain = Node->getOperand(0);
     SDValue LHS = Node->getOperand(1);
     SDValue RHS = Node->getOperand(2);
@@ -381,10 +388,12 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       CmpOps.push_back(RHS);
     }
 
+    CmpOps.push_back(CopyCh);
     CmpOps.push_back(CopyGlue);
 
     SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, MVT::Glue, CmpOps);
-    SDValue CmpGlue(CmpN, 0);
+    SDValue CmpChain(CmpN, 0);
+    SDValue CmpGlue(CmpN, 1);
 
     unsigned BccOpc = 0;
     switch (CC) {
@@ -417,7 +426,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SmallVector<SDValue, 4> BrOps;
     BrOps.push_back(Dest);
-    BrOps.push_back(CopyCh);
+    BrOps.push_back(CmpCh);
     BrOps.push_back(CmpGlue);
 
     SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);

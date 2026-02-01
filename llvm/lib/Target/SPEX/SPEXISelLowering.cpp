@@ -59,20 +59,17 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
   setOperationAction(ISD::BRCOND, MVT::Other, Expand);
 
-  setOperationAction(ISD::SETCC, MVT::i1, Expand);
   setOperationAction(ISD::SETCC, MVT::i8, Expand);
   setOperationAction(ISD::SETCC, MVT::i16, Expand);
   setOperationAction(ISD::SETCC, MVT::i32, Expand);
   setOperationAction(ISD::SETCC, MVT::i64, Expand);
 
-  setOperationAction(ISD::SELECT, MVT::i1, Expand);
   setOperationAction(ISD::SELECT, MVT::i8, Expand);
   setOperationAction(ISD::SELECT, MVT::i16, Expand);
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   setOperationAction(ISD::SELECT, MVT::i64, Expand);
 
-  setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
-  setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i8, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::i16, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i64, Custom);
@@ -80,6 +77,22 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::XOR, MVT::i1, Expand);
   setOperationAction(ISD::AND, MVT::i1, Expand);
   setOperationAction(ISD::OR, MVT::i1, Expand);
+
+  setOperationAction(ISD::XOR, MVT::i8, Legal);
+  setOperationAction(ISD::AND, MVT::i8, Legal);
+  setOperationAction(ISD::OR, MVT::i8, Legal);
+
+  setOperationAction(ISD::XOR, MVT::i16, Legal);
+  setOperationAction(ISD::AND, MVT::i16, Legal);
+  setOperationAction(ISD::OR, MVT::i16, Legal);
+
+  setOperationAction(ISD::XOR, MVT::i32, Legal);
+  setOperationAction(ISD::AND, MVT::i32, Legal);
+  setOperationAction(ISD::OR, MVT::i32, Legal);
+
+  setOperationAction(ISD::XOR, MVT::i64, Legal);
+  setOperationAction(ISD::AND, MVT::i64, Legal);
+  setOperationAction(ISD::OR, MVT::i64, Legal);
 
   setBooleanContents(ZeroOrOneBooleanContent);
 

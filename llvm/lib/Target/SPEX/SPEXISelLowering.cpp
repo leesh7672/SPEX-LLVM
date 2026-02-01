@@ -28,6 +28,7 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   addRegisterClass(MVT::i32, &SPEX::GPRRegClass);
   addRegisterClass(MVT::i16, &SPEX::GPRRegClass);
   addRegisterClass(MVT::i8, &SPEX::GPRRegClass);
+  addRegisterClass(MVT::i1, &SPEX::GPRRegClass);
 
   computeRegisterProperties(ST.getRegisterInfo());
 
@@ -57,7 +58,7 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SRA, MVT::i32, Custom);
   setOperationAction(ISD::SRA, MVT::i64, Custom);
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
-  setOperationAction(ISD::BRCOND, MVT::Other, Expand);
+  setOperationAction(ISD::BRCOND, MVT::Other, Custom);
 
   setOperationAction(ISD::SETCC, MVT::i8, Expand);
   setOperationAction(ISD::SETCC, MVT::i16, Expand);
@@ -69,7 +70,7 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   setOperationAction(ISD::SELECT, MVT::i64, Expand);
 
-  setOperationAction(ISD::SELECT_CC, MVT::i8, Expand);
+  setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i16, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i64, Custom);
@@ -172,6 +173,8 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerBR_CC(
         Op.getOperand(0), cast<CondCodeSDNode>(Op.getOperand(1))->get(),
         Op.getOperand(2), Op.getOperand(3), Op.getOperand(4), SDLoc(Op), DAG);
+  case ISD::BRCOND:
+    return LowerBRCOND(Op, DAG);
   case ISD::SHL:
     return LowerShift(Op, DAG, SPEXISD::SHL_I);
   case ISD::SRL:
@@ -358,6 +361,26 @@ SDValue SPEXTargetLowering::LowerBR_CC(SDValue Chain, ISD::CondCode CC,
   SDValue CCVal = DAG.getCondCode(CC);
   return DAG.getNode(SPEXISD::BR_CC, DL, MVT::Other, Chain, LHS, RHS, CCVal,
                      Dest);
+}
+
+SDValue SPEXTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  auto *N = cast<SDNode>(Op);
+
+  SDValue Chain = N->getOperand(0);
+  SDValue Cond = N->getOperand(1);
+  SDValue Dest = N->getOperand(2);
+
+  EVT CondVT = Cond.getValueType();
+  if (CondVT == MVT::i1){
+    Cond = DAG.getNode(ISD::ZERO_EXTEND, DL, MVT::i8, Cond);
+    CondVT = MVT::i8;
+  }
+
+  SDValue Zero = DAG.getConstant(0, DL, CondVT);
+  SDValue CC = DAG.getCondCode(ISD::SETNE);
+
+  return DAG.getNode(ISD::BR_CC, DL, MVT::Other, Chain, CC, Cond, Zero, Dest);
 }
 
 SDValue SPEXTargetLowering::LowerBR(SDValue Chain, SDValue Dest,

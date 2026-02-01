@@ -54,6 +54,8 @@ public:
                       const SmallVectorImpl<SDValue> &OutVals, const SDLoc &DL,
                       SelectionDAG &DAG) const override;
 
+  SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
+
   SDValue LowerBR_CC(SDValue Chain, ISD::CondCode CC, SDValue LHS, SDValue RHS,
                      SDValue Dest, const SDLoc &DL, SelectionDAG &DAG) const;
 

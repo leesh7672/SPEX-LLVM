@@ -362,12 +362,12 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     bool Is64 = (LHS.getValueType() == MVT::i64);
 
-    SDValue CopyTo = CurDAG->getCopyToReg(Chain, DL, SPEX::RX, LHS);
+    SDValue CopyTo = CurDAG->getCopyToReg(Chain, DL, SPEX::RX, LHS, InGlue);
     SDValue CopyCh = CopyTo.getValue(0);
     SDValue CopyGlue = CopyTo.getValue(1);
 
     unsigned CmpOpc = 0;
-    SmallVector<SDValue, 4> CmpOps;
+    SmallVector<SDValue, 6> CmpOps;
 
     if (auto *CN = dyn_cast<ConstantSDNode>(RHS)) {
       int64_t Imm = CN->getSExtValue();
@@ -391,7 +391,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     CmpOps.push_back(CopyCh);
     CmpOps.push_back(CopyGlue);
 
-    SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, MVT::Glue, CmpOps);
+    SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
     SDValue CmpCh(CmpN, 0);
     SDValue CmpGlue(CmpN, 1);
 

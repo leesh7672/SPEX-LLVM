@@ -78,22 +78,6 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::AND, MVT::i1, Expand);
   setOperationAction(ISD::OR, MVT::i1, Expand);
 
-  setOperationAction(ISD::XOR, MVT::i8, Legal);
-  setOperationAction(ISD::AND, MVT::i8, Legal);
-  setOperationAction(ISD::OR, MVT::i8, Legal);
-
-  setOperationAction(ISD::XOR, MVT::i16, Legal);
-  setOperationAction(ISD::AND, MVT::i16, Legal);
-  setOperationAction(ISD::OR, MVT::i16, Legal);
-
-  setOperationAction(ISD::XOR, MVT::i32, Legal);
-  setOperationAction(ISD::AND, MVT::i32, Legal);
-  setOperationAction(ISD::OR, MVT::i32, Legal);
-
-  setOperationAction(ISD::XOR, MVT::i64, Legal);
-  setOperationAction(ISD::AND, MVT::i64, Legal);
-  setOperationAction(ISD::OR, MVT::i64, Legal);
-
   setBooleanContents(ZeroOrOneBooleanContent);
 
   setTruncStoreAction(MVT::i64, MVT::i32, Expand);

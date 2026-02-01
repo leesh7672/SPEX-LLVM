@@ -71,11 +71,11 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   setOperationAction(ISD::SELECT, MVT::i64, Expand);
 
-  setOperationAction(ISD::SELECT_CC, MVT::i1, Expand);
-  setOperationAction(ISD::SELECT_CC, MVT::i8, Expand);
-  setOperationAction(ISD::SELECT_CC, MVT::i16, Expand);
-  setOperationAction(ISD::SELECT_CC, MVT::i32, Expand);
-  setOperationAction(ISD::SELECT_CC, MVT::i64, Expand);
+  setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i16, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i64, Custom);
 
   setOperationAction(ISD::XOR, MVT::i1, Expand);
   setOperationAction(ISD::AND, MVT::i1, Expand);
@@ -109,6 +109,21 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::ConstantPool, MVT::i64, Legal);
 }
 
+SPEXTargetLowering::LegalizeKind SPEXTargetLowering::getTypeConversion(LLVMContext &ctx, EVT VT){
+  if(VT == MVT::i1){
+    return LegalizeKind(TargetLoweringBase::TypePromoteInteger, MVT::i32);
+  }
+  return this->TargetLowering::getTypeConversion(ctx, VT);
+}
+
+EVT SPEXTargetLowering::getTypeToTransformTo(LLVMContext &ctx, EVT VT) const{
+  if (VT == MVT::i1){
+    return MVT::i32;
+  }
+  return this->TargetLowering::getTypeToTransformTo(ctx, VT);
+}
+
+
 const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
   case SPEXISD::CALL:
@@ -133,6 +148,22 @@ const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
 SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
                                            SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
+    case ISD::SELECT_CC: 
+      {
+        SDLoc DL(Op);
+        auto *N = cast<SDNode>(Op);
+
+        SDValue LHS    = N->getOperand(0);
+        SDValue RHS    = N->getOperand(1);
+        SDValue TrueV  = N->getOperand(2);
+        SDValue FalseV = N->getOperand(3);
+        auto CC = cast<CondCodeSDNode>(N->getOperand(4))->get();
+
+        EVT ResVT = Op.getValueType();
+        SDValue Cond = DAG.getSetCC(DL, MVT::i1, LHS, RHS, CC);
+
+        return DAG.getSelect(DL, ResVT, Cond, TrueV, FalseV);
+      }
   case ISD::FrameIndex: {
     // Legalize raw FrameIndex nodes into target-specific frame indices so they
     // can be used as operands and later resolved by eliminateFrameIndex.

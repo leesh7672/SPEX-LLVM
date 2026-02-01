@@ -10,9 +10,9 @@
 #define LLVM_LIB_TARGET_SPEX_SPEXSUBTARGET_H
 
 #include "SPEXFrameLowering.h"
-#include "SPEXSelectionDAGInfo.h"
 #include "SPEXISelLowering.h"
 #include "SPEXInstrInfo.h"
+#include "SPEXSelectionDAGInfo.h"
 
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/TargetParser/Triple.h"

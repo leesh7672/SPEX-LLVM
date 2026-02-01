@@ -77,7 +77,7 @@ MCOperand SPEXMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
 }
 
 void SPEXMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
-  
+
   if (MI->isDebugInstr())
     return;
 

@@ -392,7 +392,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     CmpOps.push_back(CopyGlue);
 
     SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, MVT::Glue, CmpOps);
-    SDValue CmpChain(CmpN, 0);
+    SDValue CmpCh(CmpN, 0);
     SDValue CmpGlue(CmpN, 1);
 
     unsigned BccOpc = 0;

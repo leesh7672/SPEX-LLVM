@@ -354,11 +354,11 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       I = 1;
     }
 
-    SDValue Chain = Node->getOperand(0);
-    SDValue LHS = Node->getOperand(1);
-    SDValue RHS = Node->getOperand(2);
-    auto CC = cast<CondCodeSDNode>(Node->getOperand(3))->get();
-    SDValue Dest = Node->getOperand(4);
+    SDValue Chain = Node->getOperand(I + 0);
+    SDValue LHS = Node->getOperand(I + 1);
+    SDValue RHS = Node->getOperand(I + 2);
+    auto CC = cast<CondCodeSDNode>(Node->getOperand(I + 3))->get();
+    SDValue Dest = Node->getOperand(I + 4);
 
     bool Is64 = (LHS.getValueType() == MVT::i64);
 

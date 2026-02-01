@@ -346,6 +346,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
   case SPEXISD::BR_CC: {
     SDLoc DL(Node);
+
     SDValue Chain = Node->getOperand(0);
     SDValue LHS = Node->getOperand(1);
     SDValue RHS = Node->getOperand(2);
@@ -354,13 +355,12 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     bool Is64 = (LHS.getValueType() == MVT::i64);
 
-    unsigned CmpReg = SPEX::RX;
-    SDValue CopyTo = CurDAG->getCopyToReg(Chain, DL, CmpReg, LHS);
-    SDValue CopyChain = CopyTo.getValue(0);
+    SDValue CopyTo = CurDAG->getCopyToReg(Chain, DL, SPEX::RX, LHS);
+    SDValue CopyCh = CopyTo.getValue(0);
     SDValue CopyGlue = CopyTo.getValue(1);
 
     unsigned CmpOpc = 0;
-    SmallVector<SDValue, 5> CmpOps;
+    SmallVector<SDValue, 4> CmpOps;
 
     if (auto *CN = dyn_cast<ConstantSDNode>(RHS)) {
       int64_t Imm = CN->getSExtValue();
@@ -381,13 +381,10 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       CmpOps.push_back(RHS);
     }
 
-    CmpOps.push_back(CopyChain);
     CmpOps.push_back(CopyGlue);
 
-    SDNode *CmpN =
-        CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
-    SDValue CmpChain(CmpN, 0);
-    SDValue CmpGlue(CmpN, 1);
+    SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, MVT::Glue, CmpOps);
+    SDValue CmpGlue(CmpN, 0);
 
     unsigned BccOpc = 0;
     switch (CC) {
@@ -413,18 +410,21 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     case ISD::SETUGE:
       BccOpc = Is64 ? SPEX::BCC_ge_64 : SPEX::BCC_ge_32;
       break;
-    default: // Fallback: treat as != BccOpc = Is64 ? SPEX::BCC_ne_64 :
-             // SPEX::BCC_ne_32; break; }
-      SmallVector<SDValue, 4> BrOps;
-      BrOps.push_back(Dest);
-      BrOps.push_back(CmpChain);
-      BrOps.push_back(CmpGlue);
-
-      SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);
-      ReplaceNode(Node, BrN);
-      BrN->setNodeId(-1);
-      return;
+    default:
+      BccOpc = Is64 ? SPEX::BCC_ne_64 : SPEX::BCC_ne_32;
+      break;
     }
+
+    SmallVector<SDValue, 4> BrOps;
+    BrOps.push_back(Dest);
+    BrOps.push_back(CopyCh);
+    BrOps.push_back(CmpGlue);
+
+    SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);
+    ReplaceNode(Node, BrN);
+
+    return;
+  }
   case ISD::SIGN_EXTEND_INREG: {
     SDLoc DL(Node);
 
@@ -503,12 +503,12 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
   }
   }
 
-    SelectCode(Node);
-  }
+  SelectCode(Node);
+}
 
-  FunctionPass *llvm::createSPEXISelDag(SPEXTargetMachine & TM) {
-    return new SPEXDAGToDAGISelLegacy(TM);
-  }
+FunctionPass *llvm::createSPEXISelDag(SPEXTargetMachine &TM) {
+  return new SPEXDAGToDAGISelLegacy(TM);
+}
 
 #undef DEBUG_TYPE
 #undef PASS_NAME

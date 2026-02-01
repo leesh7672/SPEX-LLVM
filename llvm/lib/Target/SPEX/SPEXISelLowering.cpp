@@ -497,9 +497,13 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   if (InGlue.getNode())
     Ops.push_back(InGlue);
 
-  Chain = DAG.getNode(SPEXISD::CALL, DL, NodeTys, Ops);
-  Chain = DAG.getCALLSEQ_END(Chain, NumBytes, 0, InGlue, DL);
-  InGlue = Chain.getValue(1);
+  SDValue Call = DAG.getNode(SPEXISD::CALL, DL, NodeTys, Ops);
+  InGlue = Call.getValue(1);
+  SDValue End = DAG.getCALLSEQ_END(Chain, NumBytes, 0, InGlue, DL);
+
+  if (End.getNode()->getNumValues() > 1 && End.getValueType() == MVT::Glue) {
+    InGlue = End.getValue(1);
+  }
 
   SDValue ResultChain =
       lowerCallResult(Chain, InGlue, DL, CLI.Ins, DAG, InVals);

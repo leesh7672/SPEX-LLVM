@@ -502,18 +502,16 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   SDValue CallGlue = Call.getValue(1);
 
   SDValue End = DAG.getCALLSEQ_END(CallCh, NumBytes, 0, CallGlue, DL);
-  SDValue EndCh = End.getValue(0);
-  SDValue EndGlue;
 
-  if (End.getNode()->getNumValues() > 1 &&
-      End.getNode()->getValueType(1) == MVT::Glue) {
-    EndGlue = End.getValue(1);
-  } else {
-    EndGlue = CallGlue;
-  }
+  SDValue ChainOut = End;
+  SDValue GlueOut;
+
+  if (End.getNode()->getNumValues() > 1) {
+    GlueOut = End.getValue(1);
+  } 
 
   SDValue ResultChain =
-      lowerCallResult(EndCh, EndGlue, DL, CLI.Ins, DAG, InVals);
+      lowerCallResult(ChainOut, GlueOut, DL, CLI.Ins, DAG, InVals);
   return ResultChain;
 }
 

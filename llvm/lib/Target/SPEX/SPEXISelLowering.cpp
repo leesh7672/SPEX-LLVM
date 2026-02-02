@@ -498,15 +498,19 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     Ops.push_back(InGlue);
 
   SDValue Call = DAG.getNode(SPEXISD::CALL, DL, NodeTys, Ops);
-  InGlue = Call.getValue(1);
-  SDValue End = DAG.getCALLSEQ_END(Chain, NumBytes, 0, InGlue, DL);
+  SDValue CallCh = Call.getValue(0);
+  SDValue CallGlue = Call.getValue(1);
 
-  if (End.getNode()->getNumValues() > 1 && End.getValueType() == MVT::Glue) {
-    InGlue = End.getValue(1);
+  SDValue End = DAG.getCALLSEQ_END(CallCh, NumBytes, 0, CallGlue, DL);
+  SDValue EndCh = End.getValue(0);
+  SDValue EndGlue;
+
+  if (End.getNode()->getNumValues() > 1 && End.getNode()->getValueType(1) == MVT::Glue) {
+    EndGlue = End.getValue(1);
   }
 
   SDValue ResultChain =
-      lowerCallResult(Chain, InGlue, DL, CLI.Ins, DAG, InVals);
+      lowerCallResult(EndCh, EndGlue, DL, CLI.Ins, DAG, InVals);
   return ResultChain;
 }
 

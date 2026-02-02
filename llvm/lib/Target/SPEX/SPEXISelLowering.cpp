@@ -303,39 +303,16 @@ SPEXTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID, bool,
   if (Outs.size() > 1)
     report_fatal_error("SPEX: only one return value is supported");
 
-  SDValue Glue;
-
   if (!OutVals.empty()) {
     SDValue RetVal = OutVals[0];
-    EVT RetVT = RetVal.getValueType();
-
-    if (RetVT.isInteger() && RetVT != MVT::i64) {
-      unsigned Opc = ISD::ZERO_EXTEND;
-
-      if (!Outs.empty()) {
-        if (Outs[0].Flags.isSExt())
-          Opc = ISD::SIGN_EXTEND;
-        else if (Outs[0].Flags.isZExt())
-          Opc = ISD::ZERO_EXTEND;
-      }
-
-      RetVal = DAG.getNode(Opc, DL, MVT::i64, RetVal);
-    } else if (RetVT.isInteger() && RetVT.getSizeInBits() > 64) {
-      report_fatal_error("SPEX: return integer > 64 not supported yet");
-    } else if (!RetVT.isInteger() && RetVT != MVT::i64) {
-      report_fatal_error("SPEX: non-integer return not supported yet");
-    }
-
+    if (RetVal.getValueType() != MVT::i64)
+      RetVal = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i64, RetVal);
+    SDValue Glue;
     Chain = DAG.getCopyToReg(Chain, DL, SPEX::R0, RetVal, Glue);
     Glue = Chain.getValue(1);
-
-    SmallVector<SDValue, 2> Ops;
-    Ops.push_back(Chain);
-    Ops.push_back(Glue);
-    return DAG.getNode(SPEXISD::RET, DL, MVT::Other, Ops);
+    return DAG.getNode(SPEXISD::RET, DL, MVT::Other, Chain, Glue);
   }
 
-  // void return
   return DAG.getNode(SPEXISD::RET, DL, MVT::Other, Chain);
 }
 

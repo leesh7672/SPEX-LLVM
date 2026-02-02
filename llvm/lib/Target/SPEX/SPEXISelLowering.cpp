@@ -296,31 +296,53 @@ SDValue SPEXTargetLowering::LowerFormalArguments(
 }
 
 SDValue
-SPEXTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID, bool,
+SPEXTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
+                                bool IsVarArg,
                                 const SmallVectorImpl<ISD::OutputArg> &Outs,
                                 const SmallVectorImpl<SDValue> &OutVals,
                                 const SDLoc &DL, SelectionDAG &DAG) const {
+
   if (Outs.size() > 1)
     report_fatal_error("SPEX: only one return value is supported");
 
+  SmallVector<CCValAssign, 4> RetLocs;
+  CCState CCInfo(CallConv, IsVarArg, DAG.getMachineFunction(), RetLocs,
+                 *DAG.getContext());
+  CCInfo.AnalyzeReturn(Outs, RetCC_SPEX);
+
+  SDValue Glue;
+
   if (!OutVals.empty()) {
+    SDValue RV = OutVals[0];
+    const CCValAssign &VA = RetLocs[0];
 
-    SDValue RetVal = OutVals[0];
-    EVT VT = RetVal.getValueType();
+    EVT LocVT = VA.getLocVT();  
+    EVT ValVT = VA.getValVT(); 
 
-    if (VT != MVT::i64) {
-      const auto &F = Outs[0].Flags;
-      if (F.isZExt())
-        RetVal = DAG.getNode(ISD::ZERO_EXTEND, DL, MVT::i64, RetVal);
-      else if (F.isSExt())
-        RetVal = DAG.getNode(ISD::SIGN_EXTEND, DL, MVT::i64, RetVal);
-      else
-        RetVal = DAG.getNode(ISD::ANY_EXTEND,  DL, MVT::i64, RetVal);
+    if (RV.getValueType() != ValVT)
+      RV = DAG.getNode(ISD::BITCAST, DL, ValVT, RV);
+
+    switch (VA.getLocInfo()) {
+    case CCValAssign::SExt:
+      RV = DAG.getNode(ISD::SIGN_EXTEND, DL, LocVT, RV);
+      break;
+    case CCValAssign::ZExt:
+      RV = DAG.getNode(ISD::ZERO_EXTEND, DL, LocVT, RV);
+      break;
+    case CCValAssign::AExt:
+      RV = DAG.getNode(ISD::ANY_EXTEND, DL, LocVT, RV);
+      break;
+    case CCValAssign::Full:
+      if (RV.getValueType() != LocVT)
+        RV = DAG.getNode(ISD::BITCAST, DL, LocVT, RV);
+      break;
+    default:
+      llvm_unreachable("SPEX: unknown return locinfo");
     }
 
-    SDValue Glue;
-    Chain = DAG.getCopyToReg(Chain, DL, SPEX::R0, RetVal, Glue);
+    Chain = DAG.getCopyToReg(Chain, DL, VA.getLocReg(), RV, Glue);
     Glue = Chain.getValue(1);
+
     return DAG.getNode(SPEXISD::RET, DL, MVT::Other, Chain, Glue);
   }
 
@@ -519,7 +541,7 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
 
   if (End.getNode()->getNumValues() > 1) {
     GlueOut = End.getValue(1);
-  } 
+  }
 
   SDValue ResultChain =
       lowerCallResult(ChainOut, GlueOut, DL, CLI.Ins, DAG, InVals);

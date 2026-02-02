@@ -304,9 +304,20 @@ SPEXTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID, bool,
     report_fatal_error("SPEX: only one return value is supported");
 
   if (!OutVals.empty()) {
+
     SDValue RetVal = OutVals[0];
-    if (RetVal.getValueType() != MVT::i64)
-      RetVal = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i64, RetVal);
+    EVT VT = RetVal.getValueType();
+
+    if (VT != MVT::i64) {
+      const auto &F = Outs[0].Flags;
+      if (F.isZExt())
+        RetVal = DAG.getNode(ISD::ZERO_EXTEND, DL, MVT::i64, RetVal);
+      else if (F.isSExt())
+        RetVal = DAG.getNode(ISD::SIGN_EXTEND, DL, MVT::i64, RetVal);
+      else
+        RetVal = DAG.getNode(ISD::ANY_EXTEND,  DL, MVT::i64, RetVal);
+    }
+
     SDValue Glue;
     Chain = DAG.getCopyToReg(Chain, DL, SPEX::R0, RetVal, Glue);
     Glue = Chain.getValue(1);
@@ -532,7 +543,11 @@ SDValue SPEXTargetLowering::lowerCallResult(
   }
 
   Chain = Copy.getValue(1);
-  SDValue Val = Copy;
+  SDValue Val64 = Copy;
+  EVT RVT = Ins[0].VT;
+
+  SDValue Val = Val64;
+
   if (Ins[0].VT != MVT::i64)
     Val = DAG.getNode(ISD::TRUNCATE, DL, Ins[0].VT, Val);
   InVals.push_back(Val);

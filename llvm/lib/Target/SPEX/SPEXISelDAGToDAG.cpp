@@ -374,14 +374,14 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       if (Is64) {
         if (isInt<32>(Imm)) {
           CmpOpc = SPEX::CMP64_I32;
-          CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
+          CmpOps.push_back(CurDAG->getTargetConstant(APInt(32, Imm, true), DL, MVT::i32));
         } else {
           CmpOpc = SPEX::CMP64_I64;
-          CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i64));
+          CmpOps.push_back(CurDAG->getTargetConstant(APInt(64, Imm, true), DL, MVT::i64));
         }
       } else {
         CmpOpc = SPEX::CMP32_I32;
-        CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i32));
+        CmpOps.push_back(CurDAG->getTargetConstant(APInt(32, Imm, true), DL, MVT::i32));
       }
     } else {
       CmpOpc = Is64 ? SPEX::CMP64_R : SPEX::CMP32_R;

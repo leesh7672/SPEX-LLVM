@@ -505,7 +505,8 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   SDValue EndCh = End.getValue(0);
   SDValue EndGlue;
 
-  if (End.getNode()->getNumValues() > 1 && End.getNode()->getValueType(1) == MVT::Glue) {
+  if (End.getNode()->getNumValues() > 1 &&
+      End.getNode()->getValueType(1) == MVT::Glue) {
     EndGlue = End.getValue(1);
   }
 

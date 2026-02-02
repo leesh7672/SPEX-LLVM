@@ -374,14 +374,17 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       if (Is64) {
         if (isInt<32>(Imm)) {
           CmpOpc = SPEX::CMP64_I32;
-          CmpOps.push_back(CurDAG->getTargetConstant(APInt(32, Imm, true), DL, MVT::i32));
+          CmpOps.push_back(
+              CurDAG->getTargetConstant(APInt(32, Imm, true), DL, MVT::i32));
         } else {
           CmpOpc = SPEX::CMP64_I64;
-          CmpOps.push_back(CurDAG->getTargetConstant(APInt(64, Imm, true), DL, MVT::i64));
+          CmpOps.push_back(
+              CurDAG->getTargetConstant(APInt(64, Imm, true), DL, MVT::i64));
         }
       } else {
         CmpOpc = SPEX::CMP32_I32;
-        CmpOps.push_back(CurDAG->getTargetConstant(APInt(32, Imm, true), DL, MVT::i32));
+        CmpOps.push_back(
+            CurDAG->getTargetConstant(APInt(32, Imm, true), DL, MVT::i32));
       }
     } else {
       CmpOpc = Is64 ? SPEX::CMP64_R : SPEX::CMP32_R;
@@ -391,7 +394,8 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     CmpOps.push_back(CopyCh);
     CmpOps.push_back(CopyGlue);
 
-    SDNode *CmpN = CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
+    SDNode *CmpN =
+        CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
     SDValue CmpCh(CmpN, 0);
     SDValue CmpGlue(CmpN, 1);
 

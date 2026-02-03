@@ -507,7 +507,7 @@ SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   }
   default:
     if (Callee.getValueType() != MVT::i64)
-      Target = DAG.getNode(ISD::ANY_EXTEND, DL, MVT::i64, Callee);
+      Target = DAG.getNode(ISD::ZERO_EXTEND, DL, MVT::i64, Callee);
     else
       Target = Callee;
     break;

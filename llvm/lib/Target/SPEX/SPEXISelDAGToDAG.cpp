@@ -484,15 +484,24 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
   case SPEXISD::RET: {
+    SDLoc DL(Node);
+
+    unsigned Opc = SPEX::RET;
     SDValue Chain = Node->getOperand(0);
-    if (Node->getNumOperands() > 1) {
-      SDValue Glue = Node->getOperand(1);
-      SDValue Ops[] = {Chain, Glue};
-      SDNode *Ret = CurDAG->getMachineNode(SPEX::RET, DL, MVT::Other, Ops);
-      ReplaceNode(Node, Ret);
-      return;
+    SDValue Glue;
+
+    if (Node->getNumOperands() >= 2 && Node->getOperand(1).getValueType() == MVT::Glue) {
+      Glue = Node->getOperand(1);
+      Opc = SPEX::RET_R0;
     }
-    SDNode *Ret = CurDAG->getMachineNode(SPEX::RET, DL, MVT::Other, Chain);
+
+    SmallVector<SDValue, 2> Ops;
+    Ops.push_back(Chain);
+    if (Glue.getNode()){
+      Ops.push_back(Glue);
+    }
+
+    SDNode *Ret = CurDAG->getMachineNode(Opc, DL, MVT::Other, Ops);
     ReplaceNode(Node, Ret);
     return;
   }

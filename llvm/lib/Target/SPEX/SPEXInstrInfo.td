@@ -150,6 +150,8 @@ def NOP     : SPEXInstNoR6<"nop", (outs), (ins), 0x000, 0, 0b00, 0, 0>;
 def HLT     : SPEXInstNoR6<"hlt", (outs), (ins), 0x001, 0, 0b00, 0, 0>;
 let isReturn = 1, isTerminator = 1, isBarrier = 1, hasSideEffects = 1, Uses = [LR] in
 def RET     : SPEXInstNoR6<"ret", (outs), (ins), 0x002, 0, 0b00, 0, 0>;
+let isReturn = 1, isTerminator = 1, isBarrier = 1, isCodeGenOnly = 1, hasSideEffects = 1, Uses = [LR, R0] in
+def RET_R0     : SPEXInstNoR6<"ret", (outs), (ins), 0x002, 0, 0b00, 0, 0>;
 def SYSCALL : SPEXInstNoR6<"syscall", (outs), (ins), 0x003, 0, 0b00, 0, 0>;
 def TRAP    : SPEXInstNoR6<"trap", (outs), (ins), 0x004, 0, 0b00, 0, 0>;
 def ERET    : SPEXInstNoR6<"eret", (outs), (ins), 0x005, 0, 0b00, 0, 0>;

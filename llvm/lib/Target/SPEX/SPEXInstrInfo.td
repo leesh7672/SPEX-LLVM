@@ -148,7 +148,7 @@ def : Pat<(CallSeqEnd timm:$amt1, timm:$amt2),
 // SYS opcodes (0x000-0x00E)
 def NOP     : SPEXInstNoR6<"nop", (outs), (ins), 0x000, 0, 0b00, 0, 0>;
 def HLT     : SPEXInstNoR6<"hlt", (outs), (ins), 0x001, 0, 0b00, 0, 0>;
-let isReturn = 1, isTerminator = 1, isBarrier = 1, hasSideEffects = 1, Uses = [LR] in
+let isReturn = 1, isTerminator = 1, isBarrier = 1, hasSideEffects = 1, Uses = [LR, R0] in
 def RET     : SPEXInstNoR6<"ret", (outs), (ins), 0x002, 0, 0b00, 0, 0>;
 def SYSCALL : SPEXInstNoR6<"syscall", (outs), (ins), 0x003, 0, 0b00, 0, 0>;
 def TRAP    : SPEXInstNoR6<"trap", (outs), (ins), 0x004, 0, 0b00, 0, 0>;
@@ -277,7 +277,7 @@ def JMP : SPEXInstNoR6<"jmp\t$target", (outs), (ins brtarget:$target),
                        0x200, 0, 0b00, 1, 1> {
 }
 
-let isCall = 1, Defs = [LR] in
+let isCall = 1, Defs = [LR, R0] in
 
 // Absolute-address call (inline immediate address). This is what plain `call`
 // in assembly means.
@@ -286,11 +286,11 @@ def CALL : SPEXInstNoR6<"call\t$imm", (outs), (ins SPEXImm64:$imm, variable_ops)
 }
 
 // Register-indirect calls. The suffix (32/64) indicates the register width.
-let isCall = 1, Defs = [LR] in
+let isCall = 1, Defs = [LR, R0] in
 def CALL32 : SPEXInst<"call32\t$r6", (outs), (ins GPR:$r6, variable_ops),
                         0x203, 0, 0b10, 0, 0>;
 
-let isCall = 1, Defs = [LR] in
+let isCall = 1, Defs = [LR, R0] in
 def CALL64 : SPEXInst<"call64\t$r6", (outs), (ins GPR:$r6, variable_ops),
                         0x203, 0, 0b11, 0, 0>;
 

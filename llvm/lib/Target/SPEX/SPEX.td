@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-include "SPEXInstInfo.td"
+include "SPEXInstrInfo.td"
 include "SPEXCallingConv.td"
 
 def SPEX : Target {

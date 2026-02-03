@@ -316,8 +316,8 @@ SPEXTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
     SDValue RV = OutVals[0];
     const CCValAssign &VA = RetLocs[0];
 
-    EVT LocVT = VA.getLocVT();  
-    EVT ValVT = VA.getValVT(); 
+    EVT LocVT = VA.getLocVT();
+    EVT ValVT = VA.getValVT();
 
     if (RV.getValueType() != ValVT)
       RV = DAG.getNode(ISD::BITCAST, DL, ValVT, RV);
@@ -554,26 +554,52 @@ SDValue SPEXTargetLowering::lowerCallResult(
     SmallVectorImpl<SDValue> &InVals) const {
   if (Ins.empty())
     return Chain;
-  if (Ins.size() > 1)
-    report_fatal_error("SPEX: multiple return values not supported");
 
-  SDValue Copy;
-  if (InGlue.getNode()) {
-    Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
-  } else {
-    Copy = DAG.getCopyFromReg(Chain, DL, SPEX::R0, MVT::i64, InGlue);
+  // We only support one return value for now.
+  if (Ins.size() > 1)
+    report_fatal_error("SPEX: only one return value is supported");
+
+  SmallVector<CCValAssign, 1> RVLocs;
+  CCState CCInfo(CallingConv::C, /*IsVarArg=*/false, DAG.getMachineFunction(),
+                 RVLocs, *DAG.getContext());
+
+  // Use the same return CC rule used by the callee side.
+  CCInfo.AnalyzeCallResult(Ins, RetCC_SPEX);
+
+  const CCValAssign &VA = RVLocs[0];
+
+  // Fetch the raw value from the return register in the ABI type (usually i64).
+  SDValue Val =
+      DAG.getCopyFromReg(Chain, DL, VA.getLocReg(), VA.getLocVT(), InGlue);
+  Chain = Val.getValue(1);
+  InGlue = Val.getValue(2);
+
+  // Convert to the requested IR type using LocInfo.
+  SDValue Res = Val;
+
+  // If the IR expects a smaller type, truncate first.
+  if (VA.getValVT() != VA.getLocVT())
+    Res = DAG.getNode(ISD::TRUNCATE, DL, VA.getValVT(), Res);
+
+  switch (VA.getLocInfo()) {
+  case CCValAssign::Full:
+    break;
+  case CCValAssign::SExt:
+    // Caller-side canonicalization (rarely needed if callee already
+    // sign-extends, but keeps behavior consistent under optimization).
+    Res = DAG.getNode(ISD::SIGN_EXTEND, DL, VA.getValVT(), Res);
+    break;
+  case CCValAssign::ZExt:
+    Res = DAG.getNode(ISD::ZERO_EXTEND, DL, VA.getValVT(), Res);
+    break;
+  case CCValAssign::AExt:
+    Res = DAG.getNode(ISD::ANY_EXTEND, DL, VA.getValVT(), Res);
+    break;
+  default:
+    llvm_unreachable("SPEX: unknown return LocInfo");
   }
 
-  Chain = Copy.getValue(1);
-  SDValue Val64 = Copy;
-  EVT RVT = Ins[0].VT;
-
-  SDValue Val = Val64;
-
-  if (Ins[0].VT != MVT::i64)
-    Val = DAG.getNode(ISD::TRUNCATE, DL, Ins[0].VT, Val);
-  InVals.push_back(Val);
-
+  InVals.push_back(Res);
   return Chain;
 }
 

@@ -490,14 +490,15 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     SDValue Chain = Node->getOperand(0);
     SDValue Glue;
 
-    if (Node->getNumOperands() >= 2 && Node->getOperand(1).getValueType() == MVT::Glue) {
+    if (Node->getNumOperands() >= 2 &&
+        Node->getOperand(1).getValueType() == MVT::Glue) {
       Glue = Node->getOperand(1);
       Opc = SPEX::RET_R0;
     }
 
     SmallVector<SDValue, 2> Ops;
     Ops.push_back(Chain);
-    if (Glue.getNode()){
+    if (Glue.getNode()) {
       Ops.push_back(Glue);
     }
 

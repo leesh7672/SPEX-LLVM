@@ -36,12 +36,12 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::Constant, MVT::i16, Promote);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i16, Expand);
-  setOperationAction(ISD::ZERO_EXTEND, MVT::i32, Custom);
-  setOperationAction(ISD::ZERO_EXTEND, MVT::i64, Custom);
+  setOperationAction(ISD::ZERO_EXTEND, MVT::i32, Expand);
+  setOperationAction(ISD::ZERO_EXTEND, MVT::i64, Expand);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i16, Expand);
-  setOperationAction(ISD::SIGN_EXTEND, MVT::i32, Custom);
-  setOperationAction(ISD::SIGN_EXTEND, MVT::i64, Custom);
+  setOperationAction(ISD::SIGN_EXTEND, MVT::i32, Expand);
+  setOperationAction(ISD::SIGN_EXTEND, MVT::i64, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i16, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i32, Expand);

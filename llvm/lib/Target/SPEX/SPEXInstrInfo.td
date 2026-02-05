@@ -796,6 +796,15 @@ def PSEUDO_ST16rr  : SPEXPseudoInst<(outs),
 def PSEUDO_ST8rr   : SPEXPseudoInst<(outs),
                                       (ins GPR:$val, GPR:$base, GPR:$idx)>;
 
+def PSEUDO_NOT32r : SPEXPseudoInst<(outs GPR:$dst),
+  (ins  GPR:$src)> {
+  let Constraints = "$dst = $src";
+}
+
+def PSEUDO_NOT64r : SPEXPseudoInst<(outs GPR:$dst),
+  (ins  GPR:$src)> {
+  let Constraints = "$dst = $src";
+}
 
 def : Pat<(i32 imm:$imm), (PSEUDO_LI32 imm:$imm)>;
 def : Pat<(i64 imm:$imm), (PSEUDO_LI64 imm:$imm)>;
@@ -998,6 +1007,9 @@ def : Pat<(store i16:$val, (SPEXAddr i64:$base, SPEXImm32Pat:$off)),
           (PSEUDO_ST16 GPR:$val, GPR:$base, imm:$off)>;
 def : Pat<(store i8:$val, (SPEXAddr i64:$base, SPEXImm32Pat:$off)),
           (PSEUDO_ST8 GPR:$val, GPR:$base, imm:$off)>;
+
+def : Pat<(not i32:$val), (PSEUDO_NOT32r i32:$val)>;
+def : Pat<(not i64:$val), (PSEUDO_NOT64r i64:$val)>;
 
 defm : RemapAllTargetPseudoPointerOperands<GPR>;
 

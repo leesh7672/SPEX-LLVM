@@ -67,6 +67,10 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::XOR, MVT::i1, Promote);
   setOperationAction(ISD::AND, MVT::i1, Promote);
   setOperationAction(ISD::OR, MVT::i1, Promote);
+  setOperationAction(ISD::ANY_EXTEND,  MVT::i1, Promote);
+  setOperationAction(ISD::ZERO_EXTEND, MVT::i1, Promote);
+  setOperationAction(ISD::SIGN_EXTEND, MVT::i1, Promote);
+  setOperationAction(ISD::TRUNCATE, MVT::i1, Expand);
 
   setBooleanContents(ZeroOrOneBooleanContent);
 

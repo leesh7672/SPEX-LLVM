@@ -43,10 +43,10 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SIGN_EXTEND, MVT::i32, Custom);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i64, Custom);
 
-  setOperationAction(ISD::ANY_EXTEND, MVT::i8, Expand);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i16, Expand);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i32, Expand);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i64, Expand);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i8, Custom);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i16, Custom);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i32, Custom);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i64, Custom);
 
   setOperationAction(ISD::BR, MVT::Other, Custom);
   setOperationAction(ISD::BRCOND, MVT::Other, Custom);
@@ -189,13 +189,44 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
+  case ISD::ANY_EXTEND: {
+    SDLoc DL(Op);
+    SDValue Src = Op.getOperand(0);
+    EVT SrcVT = Src.getValueType();
+    EVT DstVT = Op.getValueType();
+
+    if (!DstVT.isSimple() || !SrcVT.isSimple()) {
+      break;
+    }
+
+    unsigned DstBits = DstVT.getSimpleVT().getSizeInBits();
+    unsigned SrcBits = SrcVT.getSimpleVT().getSizeInBits();
+
+    if (SrcBits >= DstBits)
+      return Src;
+
+    unsigned Opc = 0;
+
+    if (DstBits == 16)
+      Opc = SPEX::MOVMOV64_R;
+    else if (DstBits == 32)
+      Opc = SPEX::MOVMOV32_R;
+    else if (DstBits == 16)
+      Opc = SPEX::MOVMOV16_R;
+    else if (DstBits == 8)
+      Opc = SPEX::MOVMOV8_R;
+    else
+      break;
+
+    return SDValue(DAG.getMachineNode(Opc, DL, DstVT, Src), 0);
+  }
   case ISD::ZERO_EXTEND: {
     SDLoc DL(Op);
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();
     EVT SrcVT = Src.getValueType();
 
-    if (!DstVT.isSimple() || ! SrcVT.isSimple()){
+    if (!DstVT.isSimple() || !SrcVT.isSimple()) {
       break;
     }
 
@@ -212,15 +243,15 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     SDValue ZeroImm = DAG.getConstant(0, DL, MVT::i64);
     unsigned Opc = 0;
     switch (SrcBits) {
-      case 8:
-        Opc = SPEX::MOVMOV8_R;
-        break;
-      case 16:
-        Opc = SPEX::MOVMOV16_R;
-        break;
-      case 32:
-        Opc = SPEX::MOVMOV32_R;
-        break;
+    case 8:
+      Opc = SPEX::MOVMOV8_R;
+      break;
+    case 16:
+      Opc = SPEX::MOVMOV16_R;
+      break;
+    case 32:
+      Opc = SPEX::MOVMOV32_R;
+      break;
     }
 
     return SDValue(DAG.getMachineNode(Opc, DL, DstVT, ZeroImm, Src), 0);

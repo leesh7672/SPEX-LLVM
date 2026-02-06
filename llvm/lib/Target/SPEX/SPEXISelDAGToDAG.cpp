@@ -238,9 +238,12 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     int64_t V = CN->getZExtValue();
 
-    if (Bits == 8)  V &= 0xFFull;
-    if (Bits == 16) V &= 0xFFFFull;
-    if (Bits == 32) V &= 0xFFFFFFFFull;
+    if (Bits == 8)
+      V &= 0xFFull;
+    if (Bits == 16)
+      V &= 0xFFFFull;
+    if (Bits == 32)
+      V &= 0xFFFFFFFFull;
 
     SDValue Imm = CurDAG->getTargetConstant(V, DL, ImmVT);
 

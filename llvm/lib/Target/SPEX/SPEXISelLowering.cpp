@@ -65,19 +65,19 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
 
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
 
-  setOperationAction(ISD::SETCC, MVT::i1, Promote);
+  setOperationAction(ISD::SETCC, MVT::i1, Expand);
   setOperationAction(ISD::SETCC, MVT::i8, Expand);
   setOperationAction(ISD::SETCC, MVT::i16, Expand);
   setOperationAction(ISD::SETCC, MVT::i32, Expand);
   setOperationAction(ISD::SETCC, MVT::i64, Expand);
 
-  setOperationAction(ISD::SELECT, MVT::i1, Promote);
+  setOperationAction(ISD::SELECT, MVT::i1, Expand);
   setOperationAction(ISD::SELECT, MVT::i8, Expand);
   setOperationAction(ISD::SELECT, MVT::i16, Expand);
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   setOperationAction(ISD::SELECT, MVT::i64, Expand);
 
-  setOperationAction(ISD::SELECT_CC, MVT::i1, Promote);
+  setOperationAction(ISD::SELECT_CC, MVT::i1, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i16, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
@@ -254,7 +254,10 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
       break;
     }
 
-    return SDValue(DAG.getMachineNode(Opc, DL, MVT::Glue, DAG.getCopyToReg(SDValue(), DL, SPEX::RX, ZeroImm), Src), 0);
+    SDValue Glue;
+    SDValue ZeroReg = DAG.getCopyToReg(ZeroImm, DL, SPEX::RX, Glue); 
+
+    return SDValue(DAG.getMachineNode(Opc, DL, MVT::Glue, ZeroReg, Src), 0);
   }
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);

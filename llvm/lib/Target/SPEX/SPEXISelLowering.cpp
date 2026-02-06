@@ -32,8 +32,6 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   computeRegisterProperties(ST.getRegisterInfo());
 
   setOperationAction(ISD::Constant, MVT::i1, Promote);
-  setOperationAction(ISD::Constant, MVT::i8, Promote);
-  setOperationAction(ISD::Constant, MVT::i16, Promote);
 
   setOperationAction(ISD::ZERO_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i16, Expand);

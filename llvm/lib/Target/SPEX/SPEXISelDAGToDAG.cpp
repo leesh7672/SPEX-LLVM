@@ -233,12 +233,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     auto *CN = cast<ConstantSDNode>(Node);
 
     int64_t S = CN->getSExtValue();
-    unsigned ImmBits = ImmVT.getScalarSizeInBits();
-
-    if(ImmBits < 32){
-      ImmBits = 32;
-    }
-
     SDValue Imm = CurDAG->getTargetConstant(S, DL, ImmVT);
 
     SDNode *Res = CurDAG->getMachineNode(Opc, DL, VT, Imm);

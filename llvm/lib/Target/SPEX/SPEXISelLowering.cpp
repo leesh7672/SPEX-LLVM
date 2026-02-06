@@ -207,18 +207,18 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
 
     unsigned Opc = 0;
 
-    if (DstBits == 16)
-      Opc = SPEX::MOVMOV64_R;
+    if (DstBits == 64)
+      Opc = SPEX::MOVMOV64;
     else if (DstBits == 32)
-      Opc = SPEX::MOVMOV32_R;
+      Opc = SPEX::MOVMOV32;
     else if (DstBits == 16)
-      Opc = SPEX::MOVMOV16_R;
+      Opc = SPEX::MOVMOV16;
     else if (DstBits == 8)
-      Opc = SPEX::MOVMOV8_R;
+      Opc = SPEX::MOVMOV8;
     else
       break;
 
-    return SDValue(DAG.getMachineNode(Opc, DL, DstVT, Src), 0);
+    return SDValue(DAG.getMachineNode(Opc, DL, MVT::Glue, Src), 0);
   }
   case ISD::ZERO_EXTEND: {
     SDLoc DL(Op);
@@ -244,17 +244,17 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     unsigned Opc = 0;
     switch (SrcBits) {
     case 8:
-      Opc = SPEX::MOVMOV8_R;
+      Opc = SPEX::MOVMOV8;
       break;
     case 16:
-      Opc = SPEX::MOVMOV16_R;
+      Opc = SPEX::MOVMOV16;
       break;
     case 32:
-      Opc = SPEX::MOVMOV32_R;
+      Opc = SPEX::MOVMOV32;
       break;
     }
 
-    return SDValue(DAG.getMachineNode(Opc, DL, DstVT, ZeroImm, Src), 0);
+    return SDValue(DAG.getMachineNode(Opc, DL, MVT::Glue, DAG.getCopyToReg(SDValue(), DL, SPEX::RX, ZeroImm), Src), 0);
   }
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);

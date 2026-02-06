@@ -45,9 +45,18 @@ def SPEXImm64AsmOperand : AsmOperandClass {
   let RenderMethod = "addImmOperands";
 }
 
+
 def SPEXImm9  : Operand<i32> {
   let ParserMatchClass = SPEXImm9AsmOperand;
   let DecoderMethod = "DecodeSPEXImm9";
+}
+def SPEXImm32_8 : Operand<i8> { 
+  let ParserMatchClass = SPEXImm32AsmOperand;
+  let DecoderMethod = "DecodeSPEXImm32";
+}
+def SPEXImm32_16 : Operand<i16> {
+  let ParserMatchClass = SPEXImm32AsmOperand;
+  let DecoderMethod = "DecodeSPEXImm32";
 }
 def SPEXImm32 : Operand<i32> {
   let ParserMatchClass = SPEXImm32AsmOperand;

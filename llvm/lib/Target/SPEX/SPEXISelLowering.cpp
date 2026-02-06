@@ -33,8 +33,8 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
 
   setOperationAction(ISD::Constant, MVT::i1, Promote);
 
-  setOperationAction(ISD::ZERO_EXTEND, MVT::i8, Expand);
-  setOperationAction(ISD::ZERO_EXTEND, MVT::i16, Expand);
+  setOperationAction(ISD::ZERO_EXTEND, MVT::i8, Custom);
+  setOperationAction(ISD::ZERO_EXTEND, MVT::i16, Custom);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i32, Custom);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i64, Custom);
 
@@ -45,8 +45,8 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
 
   setOperationAction(ISD::ANY_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i16, Expand);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i32, Custom);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i64, Custom);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i32, Expand);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i64, Expand);
 
   setOperationAction(ISD::BR, MVT::Other, Custom);
   setOperationAction(ISD::BRCOND, MVT::Other, Custom);
@@ -189,53 +189,42 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
-  case ISD::ANY_EXTEND: {
-    SDLoc DL(Op);
-    SDValue Src = Op.getOperand(0);
-    EVT DstVT = Op.getValueType();
-
-    if (auto *LN = dyn_cast<LoadSDNode>(Src)) {
-      EVT MemVT = LN->getMemoryVT();
-      if ((DstVT == MVT::i32 || DstVT == MVT::i64) &&
-          (MemVT == MVT::i8 || MemVT == MVT::i16 || MemVT == MVT::i32)) {
-        return DAG.getExtLoad(ISD::ZEXTLOAD, DL, DstVT, LN->getChain(),
-                              LN->getBasePtr(), MemVT, LN->getMemOperand());
-      }
-    }
-    return Src;
-  }
+  case ISD::ANY_EXTEND: 
+    break;
   case ISD::ZERO_EXTEND: {
     SDLoc DL(Op);
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();
     EVT SrcVT = Src.getValueType();
 
-    if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
-      break;
-
-    unsigned DstBits = DstVT.getSizeInBits();
-    unsigned SrcBits = SrcVT.getSizeInBits();
-
-    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
-      break;
-
-    SDValue Wide;
-
-    if (SrcVT != DstVT) {
-      Wide = DAG.getNode(ISD::ANY_EXTEND, DL, DstVT, Src);
-    } else {
-      Wide = Src;
+    if (!DstVT.isSimple() || ! SrcVT.isSimple()){
     }
 
-    uint64_t Mask = (SrcBits == 8)    ? 0xFFull
-                    : (SrcBits == 16) ? 0xFFFFull
-                                      : 0xFFFFFFFFull;
-    if (DstVT == MVT::i32)
-      Mask &= 0xFFFFFFFFull;
+    unsigned DstBits = DstVT.getSimpleVT().getSizeInBits();
+    unsigned SrcBits = SrcVT.getSimpleVT().getSizeInBits();
 
-    SDValue C = DAG.getConstant(Mask, DL, DstVT);
+    if (!(DstBits == 8 || DstBits == 16 || DstBits == 32 || DstBits == 64))
+      break;
+    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
+      break;
+    if (SrcBits >= DstBits)
+      break;
 
-    return DAG.getNode(ISD::AND, DL, DstVT, Wide, C);
+    SDValue ZeroImm = DAG.getConstant(0, DL, MVT::i64);
+    unsigned Opc = 0;
+    switch (SrcBits) {
+      case 8:
+        Opc = SPEX::MOVMOV8_R;
+        break;
+      case 16:
+        Opc = SPEX::MOVMOV16_R;
+        break;
+      case 32:
+        Opc = SPEX::MOVMOV32_R;
+        break;
+    }
+
+    return SDValue(DAG.getMachineNode(Opc, DL, DstVT, ZeroImm, Src), 0);
   }
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);

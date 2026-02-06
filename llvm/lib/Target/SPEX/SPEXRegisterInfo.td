@@ -19,6 +19,8 @@ class SPEXReg<string n, bits<16> enc> : Register<n> {
 
 def RX : SPEXAcc<"rx">;
 
+def LR : SPEXAcc<"lr">;
+
 def R0  : SPEXReg<"r0", 0>;
 def R1  : SPEXReg<"r1", 1>;
 def R2  : SPEXReg<"r2", 2>;

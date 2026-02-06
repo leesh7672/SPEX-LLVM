@@ -44,8 +44,8 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SIGN_EXTEND, MVT::i64, Custom);
   setOperationAction(ISD::ANY_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i16, Expand);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i32, Expand);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i64, Expand);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i32, Custom);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i64, Custom);
   setOperationAction(ISD::BR, MVT::Other, Custom);
   setOperationAction(ISD::BR_CC, MVT::i8, Custom);
   setOperationAction(ISD::BR_CC, MVT::i16, Custom);
@@ -184,6 +184,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
+  case ISD::ANY_EXTEND:
   case ISD::ZERO_EXTEND: {
     SDLoc DL(Op);
     SDValue Src = Op.getOperand(0);

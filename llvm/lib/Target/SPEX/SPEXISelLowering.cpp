@@ -28,10 +28,10 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   addRegisterClass(MVT::i32, &SPEX::GPRRegClass);
   addRegisterClass(MVT::i16, &SPEX::GPRRegClass);
   addRegisterClass(MVT::i8, &SPEX::GPRRegClass);
-  addRegisterClass(MVT::i1, &SPEX::GPRRegClass);
 
   computeRegisterProperties(ST.getRegisterInfo());
 
+  setOperationAction(ISD::Constant, MVT::i1, Promote);
   setOperationAction(ISD::Constant, MVT::i8, Promote);
   setOperationAction(ISD::Constant, MVT::i16, Promote);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i8, Expand);
@@ -60,16 +60,19 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
   setOperationAction(ISD::BRCOND, MVT::Other, Custom);
 
+  setOperationAction(ISD::SETCC, MVT::i1, Promote);
   setOperationAction(ISD::SETCC, MVT::i8, Expand);
   setOperationAction(ISD::SETCC, MVT::i16, Expand);
   setOperationAction(ISD::SETCC, MVT::i32, Expand);
   setOperationAction(ISD::SETCC, MVT::i64, Expand);
 
+  setOperationAction(ISD::SELECT, MVT::i1, Promote);
   setOperationAction(ISD::SELECT, MVT::i8, Expand);
   setOperationAction(ISD::SELECT, MVT::i16, Expand);
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   setOperationAction(ISD::SELECT, MVT::i64, Expand);
 
+  setOperationAction(ISD::SELECT_CC, MVT::i1, Promote);
   setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i16, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);

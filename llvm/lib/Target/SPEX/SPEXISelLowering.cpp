@@ -395,9 +395,7 @@ SDValue SPEXTargetLowering::LowerBR_CC(SDValue Chain, ISD::CondCode CC,
   auto ExtendTo = [&](SDValue V, MVT VT) -> SDValue {
     if (V.getValueType() == VT)
       return V;
-    bool IsSigned = ISD::isSignedIntSetCC(CC);
-    unsigned Opcode = IsSigned ? ISD::SIGN_EXTEND : ISD::ZERO_EXTEND;
-    return DAG.getNode(Opcode, DL, VT, V);
+    return DAG.getNode(ISD::ANY_EXTEND, DL, VT, V);
   };
 
   MVT VT = (LHS.getValueType().getSizeInBits() <= 32 &&

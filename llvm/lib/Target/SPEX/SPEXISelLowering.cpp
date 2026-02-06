@@ -34,31 +34,38 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::Constant, MVT::i1, Promote);
   setOperationAction(ISD::Constant, MVT::i8, Promote);
   setOperationAction(ISD::Constant, MVT::i16, Promote);
+
   setOperationAction(ISD::ZERO_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i16, Expand);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i32, Custom);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i64, Custom);
+
   setOperationAction(ISD::SIGN_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i32, Custom);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i64, Custom);
+
   setOperationAction(ISD::ANY_EXTEND, MVT::i8, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i16, Expand);
   setOperationAction(ISD::ANY_EXTEND, MVT::i32, Custom);
   setOperationAction(ISD::ANY_EXTEND, MVT::i64, Custom);
+
   setOperationAction(ISD::BR, MVT::Other, Custom);
+  setOperationAction(ISD::BRCOND, MVT::Other, Custom);
+
   setOperationAction(ISD::BR_CC, MVT::i8, Custom);
   setOperationAction(ISD::BR_CC, MVT::i16, Custom);
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
   setOperationAction(ISD::BR_CC, MVT::i64, Custom);
+
   setOperationAction(ISD::SHL, MVT::i32, Custom);
   setOperationAction(ISD::SHL, MVT::i64, Custom);
   setOperationAction(ISD::SRL, MVT::i32, Custom);
   setOperationAction(ISD::SRL, MVT::i64, Custom);
   setOperationAction(ISD::SRA, MVT::i32, Custom);
   setOperationAction(ISD::SRA, MVT::i64, Custom);
+
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
-  setOperationAction(ISD::BRCOND, MVT::Other, Custom);
 
   setOperationAction(ISD::SETCC, MVT::i1, Promote);
   setOperationAction(ISD::SETCC, MVT::i8, Expand);
@@ -235,7 +242,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
 
     SDValue Wide = DAG.getNode(ISD::ZERO_EXTEND, DL, DstVT, Src);
 
-    SDValue InVT = DAG.getValueType(SrcVT); 
+    SDValue InVT = DAG.getValueType(SrcVT);
     return DAG.getNode(ISD::SIGN_EXTEND_INREG, DL, DstVT, Wide, InVT);
   }
 

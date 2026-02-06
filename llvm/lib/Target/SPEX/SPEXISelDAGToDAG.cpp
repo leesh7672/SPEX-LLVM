@@ -216,11 +216,11 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     switch (Bits) {
     case 8:
       Opc = SPEX::PSEUDO_LI8;
-      ImmVT = MVT::i32;
+      ImmVT = MVT::i8;
       break;
     case 16:
       Opc = SPEX::PSEUDO_LI16;
-      ImmVT = MVT::i32;
+      ImmVT = MVT::i16;
       break;
     case 32:
       Opc = SPEX::PSEUDO_LI32;

@@ -196,6 +196,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     EVT SrcVT = Src.getValueType();
 
     if (!DstVT.isSimple() || ! SrcVT.isSimple()){
+      break;
     }
 
     unsigned DstBits = DstVT.getSimpleVT().getSizeInBits();

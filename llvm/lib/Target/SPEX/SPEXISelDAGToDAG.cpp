@@ -207,7 +207,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     if (!VT.isInteger())
       break;
     unsigned Bits = VT.getSizeInBits();
-    unsigned Opc = 0;
+    unsigned Opc = SPEX::PSEUDO_LI64;
     switch (Bits) {
     case 8:
       Opc = SPEX::PSEUDO_LI8;

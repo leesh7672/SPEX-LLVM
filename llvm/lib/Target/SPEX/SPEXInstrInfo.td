@@ -825,8 +825,8 @@ def PSEUDO_NOT64r : SPEXPseudoInst<(outs GPR:$dst),
 
 def : Pat<(i32 imm:$imm), (PSEUDO_LI32 imm:$imm)>;
 def : Pat<(i64 imm:$imm), (PSEUDO_LI64 imm:$imm)>;
-def : Pat<(i32 imm:$imm), (PSEUDO_LI16 imm:$imm)>;
-def : Pat<(i32 imm:$imm), (PSEUDO_LI8 imm:$imm)>;
+def : Pat<(i16 imm:$imm), (PSEUDO_LI16 imm:$imm)>;
+def : Pat<(i8 imm:$imm), (PSEUDO_LI8 imm:$imm)>;
 def : Pat<(i64 tglobaladdr:$imm), (PSEUDO_LI64 tglobaladdr:$imm)>;
 def : Pat<(i64 texternalsym:$imm), (PSEUDO_LI64 texternalsym:$imm)>;
 

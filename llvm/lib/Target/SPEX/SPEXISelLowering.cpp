@@ -189,8 +189,6 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
-  case ISD::ANY_EXTEND: 
-    break;
   case ISD::ZERO_EXTEND: {
     SDLoc DL(Op);
     SDValue Src = Op.getOperand(0);

@@ -635,6 +635,30 @@ bool SPEXInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     MI.eraseFromParent();
     return true;
   }
+
+  case SPEX::PSEUDO_NOT32r: {
+    Register Dst = MI.getOperand(0).getReg();
+    Register Src = MI.getOperand(1).getReg();
+
+    BuildMI(MBB, MI, DL, get(SPEX::MOVMOV32), SPEX::RX).addReg(Src);
+    BuildMI(MBB, MI, DL, get(SPEX::NOT32));
+    BuildMI(MBB, MI, DL, get(SPEX::MOVMOV32_R), Dst);
+
+    MI.eraseFromParent();
+    return true;
+  }
+
+  case SPEX::PSEUDO_NOT64r: {
+    Register Dst = MI.getOperand(0).getReg();
+    Register Src = MI.getOperand(1).getReg();
+
+    BuildMI(MBB, MI, DL, get(SPEX::MOVMOV64), SPEX::RX).addReg(Src);
+    BuildMI(MBB, MI, DL, get(SPEX::NOT64));
+    BuildMI(MBB, MI, DL, get(SPEX::MOVMOV64_R), Dst);
+
+    MI.eraseFromParent();
+    return true;
+  }
   default:
     break;
   }

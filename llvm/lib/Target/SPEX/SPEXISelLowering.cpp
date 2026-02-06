@@ -182,7 +182,40 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
   case ISD::ZERO_EXTEND: 
-    
+    {
+      SDLoc DL(Op);
+      SDValue Src = Op.getOperand(0);
+      EVT DstVT = Op.getValueType();
+      EVT SrcVT = Src.getValueType();
+
+      if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
+        break;
+
+      unsigned DstBits = DstVT.getSizeInBits();
+      unsigned SrcBits = SrcVT.getSizeInBits();
+
+      if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
+        break;
+
+      SDValue Wide;
+
+      if (SrcVT != DstVT){
+        Wide = DAG.getNode(ISD::ANY_EXTEND, DL, DstVT, Src);
+      }else{
+        Wide = Src;
+      }
+
+
+      uint64_t Mask = (SrcBits == 8)  ? 0xFFull :
+        (SrcBits == 16) ? 0xFFFFull :
+        0xFFFFFFFFull;
+      if (DstVT == MVT::i32)
+        Mask &= 0xFFFFFFFFull;
+
+      SDValue C = DAG.getConstant(Mask, DL, DstVT);
+
+      return DAG.getNode(ISD::AND, DL, DstVT, Wide, C);
+    }
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();

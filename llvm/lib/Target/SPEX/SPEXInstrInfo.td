@@ -652,8 +652,8 @@ let hasSideEffects = 1, isBranch = 1, isTerminator = 1, isBarrier = 1 in {
 
 def PSEUDO_LI32 : SPEXPseudoInst<(outs GPR:$dst), (ins SPEXImm32:$imm)>;
 def PSEUDO_LI64 : SPEXPseudoInst<(outs GPR:$dst), (ins SPEXImm64:$imm)>;
-def PSEUDO_LI16 : SPEXPseudoInst<(outs GPR:$dst), (ins SPEXImm32:$imm)>;
-def PSEUDO_LI8 : SPEXPseudoInst<(outs GPR:$dst), (ins SPEXImm32:$imm)>;
+def PSEUDO_LI16 : SPEXPseudoInst<(outs GPR:$dst), (ins SPEXImm16:$imm)>;
+def PSEUDO_LI8 : SPEXPseudoInst<(outs GPR:$dst), (ins SPEXImm8:$imm)>;
 
 def PSEUDO_ADD32rr : SPEXPseudoInst<(outs GPR:$dst),
                                       (ins GPR:$src, GPR:$rhs)> {

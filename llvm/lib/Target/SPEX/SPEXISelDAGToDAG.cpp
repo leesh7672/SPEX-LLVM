@@ -208,7 +208,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       break;
     unsigned Bits = VT.getSizeInBits();
     unsigned Opc = 0;
-    MVT ImmVT = MVT::i32;
     switch (Bits) {
     case 8:
       Opc = SPEX::PSEUDO_LI8;
@@ -221,19 +220,18 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       break;
     case 64:
       Opc = SPEX::PSEUDO_LI64;
-      ImmVT = MVT::i64;
       break;
     default:
       break;
     }
 
     if (!Opc)
-      break;
+      return;
 
     auto *CN = cast<ConstantSDNode>(Node);
 
     int64_t S = CN->getSExtValue();
-    SDValue Imm = CurDAG->getTargetConstant(S, DL, ImmVT);
+    SDValue Imm = CurDAG->getTargetConstant(S, DL, VT);
 
     SDNode *Res = CurDAG->getMachineNode(Opc, DL, VT, Imm);
     ReplaceNode(Node, Res);

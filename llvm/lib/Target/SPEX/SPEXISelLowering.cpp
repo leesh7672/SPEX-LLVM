@@ -67,7 +67,7 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::XOR, MVT::i1, Promote);
   setOperationAction(ISD::AND, MVT::i1, Promote);
   setOperationAction(ISD::OR, MVT::i1, Promote);
-  setOperationAction(ISD::ANY_EXTEND,  MVT::i1, Promote);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i1, Promote);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i1, Promote);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i1, Promote);
   setOperationAction(ISD::TRUNCATE, MVT::i1, Expand);
@@ -148,6 +148,7 @@ static SDNode *emitRXMoveWithOptionalClear(SelectionDAG &DAG, const SDLoc &DL,
   }
   unsigned MovOpc = 0;
   switch (SrcBits) {
+  case 1:
   case 8:
     MovOpc = SPEX::MOVMOV8;
     break;
@@ -449,18 +450,46 @@ SDValue SPEXTargetLowering::LowerBR_CC(SDValue Chain, ISD::CondCode CC,
                                        SDValue LHS, SDValue RHS, SDValue Dest,
                                        const SDLoc &DL,
                                        SelectionDAG &DAG) const {
-  auto ExtendTo = [&](SDValue V, MVT VT) -> SDValue {
-    if (V.getValueType() == VT)
+  auto ExtendOrTruncTo = [&](SDValue V, MVT VT, ISD::CondCode CC) -> SDValue {
+    EVT VVT = V.getValueType();
+    if (VVT == VT)
       return V;
-    return DAG.getNode(ISD::ANY_EXTEND, DL, VT, V);
+
+    if (!VVT.isSimple()) {
+      return DAG.getZExtOrTrunc(V, DL, VT);
+    }
+
+    unsigned VB = VVT.getSimpleVT().getSizeInBits();
+    unsigned DB = VT.getSizeInBits();
+
+    if (VB > DB) {
+      return DAG.getNode(ISD::TRUNCATE, DL, VT, V);
+    }
+
+    unsigned ExtOpc = ISD::ANY_EXTEND;
+    if (CC == ISD::SETEQ || CC == ISD::SETNE) {
+      ExtOpc = ISD::ANY_EXTEND;
+    } else if (ISD::isSignedIntSetCC(CC)) {
+      ExtOpc = ISD::SIGN_EXTEND;
+    } else {
+      ExtOpc = ISD::ZERO_EXTEND;
+    }
+
+    return DAG.getNode(ExtOpc, DL, VT, V);
   };
 
-  MVT VT = (LHS.getValueType().getSizeInBits() <= 32 &&
-            RHS.getValueType().getSizeInBits() <= 32)
-               ? MVT::i32
-               : MVT::i64;
-  LHS = ExtendTo(LHS, VT);
-  RHS = ExtendTo(RHS, VT);
+  MVT VT = MVT::i64;
+  EVT RHST = RHS.getValueType();
+  EVT LHST = RHS.getValueType();
+
+  if (LHST.isSimple() && RHST.isSimple()) {
+    unsigned LB = LHST.getSimpleVT().getSizeInBits();
+    unsigned RB = RHST.getSimpleVT().getSizeInBits();
+    VT = (LB <= 32 && RB <= 32) ? MVT::i32 : MVT::i64;
+  }
+
+  LHS = ExtendOrTruncTo(LHS, VT, CC);
+  RHS = ExtendOrTruncTo(RHS, VT, CC);
 
   SDValue CCVal = DAG.getCondCode(CC);
   return DAG.getNode(SPEXISD::BR_CC, DL, MVT::Other, Chain, LHS, RHS, CCVal,
@@ -676,5 +705,5 @@ SDValue SPEXTargetLowering::lowerCallResult(
 
 EVT SPEXTargetLowering::getSetCCResultType(const DataLayout &DL,
                                            LLVMContext &Context, EVT VT) const {
-  return MVT::i64;
+  return MVT::i1;
 }

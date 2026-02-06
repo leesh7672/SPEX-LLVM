@@ -191,7 +191,21 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
-  case ISD::ANY_EXTEND:
+  case ISD::ANY_EXTEND: {
+    SDLoc DL(Op);
+    SDValue Src = Op.getOperand(0);
+    EVT DstVT = Op.getValueType();
+
+    if (auto *LN = dyn_cast<LoadSDNode>(Src)) {
+      EVT MemVT = LN->getMemoryVT();
+      if ((DstVT == MVT::i32 || DstVT == MVT::i64) &&
+          (MemVT == MVT::i8 || MemVT == MVT::i16 || MemVT == MVT::i32)) {
+        return DAG.getExtLoad(ISD::ZEXTLOAD, DL, DstVT, LN->getChain(),
+                              LN->getBasePtr(), MemVT, LN->getMemOperand());
+      }
+    }
+    return Src;
+  }
   case ISD::ZERO_EXTEND: {
     SDLoc DL(Op);
     SDValue Src = Op.getOperand(0);

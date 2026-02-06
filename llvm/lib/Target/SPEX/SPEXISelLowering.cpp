@@ -181,62 +181,58 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
-  case ISD::ZERO_EXTEND: 
-    {
-      SDLoc DL(Op);
-      SDValue Src = Op.getOperand(0);
-      EVT DstVT = Op.getValueType();
-      EVT SrcVT = Src.getValueType();
+  case ISD::ZERO_EXTEND: {
+    SDLoc DL(Op);
+    SDValue Src = Op.getOperand(0);
+    EVT DstVT = Op.getValueType();
+    EVT SrcVT = Src.getValueType();
 
-      if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
-        break;
+    if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
+      break;
 
-      unsigned DstBits = DstVT.getSizeInBits();
-      unsigned SrcBits = SrcVT.getSizeInBits();
+    unsigned DstBits = DstVT.getSizeInBits();
+    unsigned SrcBits = SrcVT.getSizeInBits();
 
-      if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
-        break;
+    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
+      break;
 
-      SDValue Wide;
+    SDValue Wide;
 
-      if (SrcVT != DstVT){
-        Wide = DAG.getNode(ISD::ANY_EXTEND, DL, DstVT, Src);
-      }else{
-        Wide = Src;
-      }
-
-
-      uint64_t Mask = (SrcBits == 8)  ? 0xFFull :
-        (SrcBits == 16) ? 0xFFFFull :
-        0xFFFFFFFFull;
-      if (DstVT == MVT::i32)
-        Mask &= 0xFFFFFFFFull;
-
-      SDValue C = DAG.getConstant(Mask, DL, DstVT);
-
-      return DAG.getNode(ISD::AND, DL, DstVT, Wide, C);
+    if (SrcVT != DstVT) {
+      Wide = DAG.getNode(ISD::ANY_EXTEND, DL, DstVT, Src);
+    } else {
+      Wide = Src;
     }
+
+    uint64_t Mask = (SrcBits == 8)    ? 0xFFull
+                    : (SrcBits == 16) ? 0xFFFFull
+                                      : 0xFFFFFFFFull;
+    if (DstVT == MVT::i32)
+      Mask &= 0xFFFFFFFFull;
+
+    SDValue C = DAG.getConstant(Mask, DL, DstVT);
+
+    return DAG.getNode(ISD::AND, DL, DstVT, Wide, C);
+  }
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();
     EVT SrcVT = Src.getValueType();
-    // We only custom-lower i32/i64 sign-extends from smaller integer types.
+
     if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
       break;
     unsigned DstBits = DstVT.getSizeInBits();
     unsigned SrcBits = SrcVT.getSizeInBits();
+
     if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
       break;
 
-    // sext(x) = sra(shl(anyext(x), DstBits-SrcBits), DstBits-SrcBits)
-    unsigned ShAmt = DstBits - SrcBits;
     SDLoc DL(Op);
-    SDValue X = DAG.getNode(ISD::ANY_EXTEND, DL, DstVT, Src);
-    SDValue Sh = DAG.getNode(ISD::SHL, DL, DstVT, X,
-                             DAG.getConstant(ShAmt, DL, MVT::i32));
-    SDValue Sa = DAG.getNode(ISD::SRA, DL, DstVT, Sh,
-                             DAG.getConstant(ShAmt, DL, MVT::i32));
-    return Sa;
+
+    SDValue Wide = DAG.getNode(ISD::ZERO_EXTEND, DL, DstVT, Src);
+
+    SDValue InVT = DAG.getValueType(SrcVT); 
+    return DAG.getNode(ISD::SIGN_EXTEND_INREG, DL, DstVT, Wide, InVT);
   }
 
   case ISD::GlobalAddress: {
@@ -336,8 +332,8 @@ SPEXTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
     SDValue RV = OutVals[0];
     const CCValAssign &VA = RetLocs[0];
 
-    EVT LocVT = VA.getLocVT();  
-    EVT ValVT = VA.getValVT(); 
+    EVT LocVT = VA.getLocVT();
+    EVT ValVT = VA.getValVT();
 
     if (RV.getValueType() != ValVT)
       RV = DAG.getNode(ISD::BITCAST, DL, ValVT, RV);

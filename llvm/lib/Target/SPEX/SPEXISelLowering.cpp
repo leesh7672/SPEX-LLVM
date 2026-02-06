@@ -151,6 +151,58 @@ const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
   }
 }
 
+static SDNode *emitRXMoveWithOptionalClear(SelectionDAG &DAG, const SDLoc &DL,
+                                           EVT DstVT, SDValue Src,
+                                           unsigned SrcBits,
+                                           bool ClearHighBitsWithZero) {
+  SDValue Glue;
+  if (ClearHighBitsWithZero) {
+    SDValue Imm0 = DAG.getTargetConstant(0, DL, MVT::i64);
+    SDNode *LiN = DAG.getMachineNode(SPEX::PSEUDO_LI64, DL, MVT::Glue, Imm0);
+    Glue = SDValue(LiN, 0);
+  }
+  unsigned MovOpc = 0;
+  switch (SrcBits) {
+  case 8:
+    MovOpc = SPEX::MOVMOV8;
+    break;
+  case 16:
+    MovOpc = SPEX::MOVMOV16;
+    break;
+  case 32:
+    MovOpc = SPEX::MOVMOV32;
+    break;
+  default:
+    llvm_unreachable("Unsupported size of values to extend");
+  }
+  SDNode *MovN = nullptr;
+
+  if (Glue.getNode()) {
+    MovN = DAG.getMachineNode(MovOpc, DL, MVT::Glue, Src, Glue);
+  } else {
+    MovN = DAG.getMachineNode(MovOpc, DL, MVT::Glue, Src);
+  }
+  Glue = SDValue(MovN, 0);
+
+  SDValue Chain = DAG.getEntryNode();
+  SDValue CFR = DAG.getCopyFromReg(Chain, DL, SPEX::RX, DstVT, Glue);
+
+  return CFR.getNode();
+}
+
+static SDValue emitRXMoveWithOptionalClearValue(SelectionDAG &DAG,
+                                                const SDLoc &DL, EVT DstVT,
+                                                SDValue Src, unsigned SrcBits,
+                                                bool ClearHighBitsWithZero) {
+  SDNode *MovN = emitRXMoveWithOptionalClear(DAG, DL, DstVT, Src, SrcBits,
+                                             ClearHighBitsWithZero);
+  SDValue Glue(MovN, 0);
+
+  SDValue Chain = DAG.getEntryNode();
+  SDValue Val = DAG.getCopyFromReg(Chain, DL, SPEX::RX, DstVT, Glue);
+  return Val;
+}
+
 SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
                                            SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -189,37 +241,6 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
-  case ISD::ANY_EXTEND: {
-
-    SDLoc DL(Op);
-    SDValue Src = Op.getOperand(0);
-    EVT SrcVT = Src.getValueType();
-    EVT DstVT = Op.getValueType();
-
-    if (!DstVT.isSimple() || !SrcVT.isSimple())
-      break;
-
-    unsigned DstBits = DstVT.getSimpleVT().getSizeInBits();
-    unsigned SrcBits = SrcVT.getSimpleVT().getSizeInBits();
-
-    if (SrcBits >= DstBits)
-      return Src;
-
-    unsigned Opc = 0;
-    if (DstBits == 64)
-      Opc = SPEX::MOVMOV64;
-    else if (DstBits == 32)
-      Opc = SPEX::MOVMOV32;
-    else if (DstBits == 16)
-      Opc = SPEX::MOVMOV16;
-    else if (DstBits == 8)
-      Opc = SPEX::MOVMOV8;
-    else
-      break;
-
-    SDNode *N = DAG.getMachineNode(Opc, DL, DstVT, Src);
-    return SDValue(N, 0);
-  }
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();
@@ -259,6 +280,51 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
                                      CP->getAlign(), CP->getOffset());
   }
 
+  case ISD::ZERO_EXTEND: {
+    SDLoc DL(Op);
+    SDValue Src = Op.getOperand(0);
+    EVT SrcVT = Src.getValueType();
+    EVT DstVT = Op.getValueType();
+
+    if (!DstVT.isSimple() || !SrcVT.isSimple())
+      break;
+
+    unsigned SrcBits = SrcVT.getSizeInBits();
+    unsigned DstBits = DstVT.getSizeInBits();
+
+    if (SrcBits >= DstBits)
+      return Src;
+
+    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
+      break;
+    if (!(DstBits == 16 || DstBits == 32 || DstBits == 64))
+      break;
+
+    return emitRXMoveWithOptionalClearValue(DAG, DL, DstVT, Src, SrcBits, true);
+  }
+  case ISD::ANY_EXTEND: {
+    SDLoc DL(Op);
+    SDValue Src = Op->getOperand(0);
+    EVT SrcVT = Src.getValueType();
+    EVT DstVT = Op.getValueType();
+
+    if (!DstVT.isSimple() || !SrcVT.isSimple())
+      break;
+
+    unsigned SrcBits = SrcVT.getSizeInBits();
+    unsigned DstBits = DstVT.getSizeInBits();
+
+    if (SrcBits >= DstBits)
+      return Src;
+
+    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
+      break;
+    if (!(DstBits == 16 || DstBits == 32 || DstBits == 64))
+      break;
+
+    return emitRXMoveWithOptionalClearValue(DAG, DL, DstVT, Src, SrcBits,
+                                            false);
+  }
   default:
     break;
   }

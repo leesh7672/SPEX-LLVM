@@ -190,14 +190,14 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
   case ISD::ANY_EXTEND: {
+
     SDLoc DL(Op);
     SDValue Src = Op.getOperand(0);
     EVT SrcVT = Src.getValueType();
     EVT DstVT = Op.getValueType();
 
-    if (!DstVT.isSimple() || !SrcVT.isSimple()) {
+    if (!DstVT.isSimple() || !SrcVT.isSimple())
       break;
-    }
 
     unsigned DstBits = DstVT.getSimpleVT().getSizeInBits();
     unsigned SrcBits = SrcVT.getSimpleVT().getSizeInBits();
@@ -206,7 +206,6 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
       return Src;
 
     unsigned Opc = 0;
-
     if (DstBits == 64)
       Opc = SPEX::MOVMOV64;
     else if (DstBits == 32)
@@ -218,7 +217,8 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     else
       break;
 
-    return SDValue(DAG.getMachineNode(Opc, DL, MVT::Glue, Src), 0);
+    SDNode *N = DAG.getMachineNode(Opc, DL, DstVT, Src);
+    return SDValue(N, 0);
   }
   case ISD::ZERO_EXTEND: {
     SDLoc DL(Op);
@@ -226,38 +226,34 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     EVT DstVT = Op.getValueType();
     EVT SrcVT = Src.getValueType();
 
-    if (!DstVT.isSimple() || !SrcVT.isSimple()) {
+    if (!DstVT.isSimple() || !SrcVT.isSimple())
       break;
-    }
 
     unsigned DstBits = DstVT.getSimpleVT().getSizeInBits();
     unsigned SrcBits = SrcVT.getSimpleVT().getSizeInBits();
 
-    if (!(DstBits == 8 || DstBits == 16 || DstBits == 32 || DstBits == 64))
-      break;
-    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
-      break;
     if (SrcBits >= DstBits)
+      return Src;
+
+    unsigned MovOpc = 0;
+    if (DstBits == 64)
+      MovOpc = SPEX::MOVMOV64;
+    else if (DstBits == 32)
+      MovOpc = SPEX::MOVMOV32;
+    else if (DstBits == 16)
+      MovOpc = SPEX::MOVMOV16;
+    else if (DstBits == 8)
+      MovOpc = SPEX::MOVMOV8;
+    else
       break;
 
-    SDValue ZeroImm = DAG.getConstant(0, DL, MVT::i64);
-    unsigned Opc = 0;
-    switch (SrcBits) {
-    case 8:
-      Opc = SPEX::MOVMOV8;
-      break;
-    case 16:
-      Opc = SPEX::MOVMOV16;
-      break;
-    case 32:
-      Opc = SPEX::MOVMOV32;
-      break;
-    }
+    // RX = 0
+    SDValue Zero = DAG.getConstant(0, DL, DstVT);
+    SDNode *Li = DAG.getMachineNode(SPEX::PSEUDO_LI64, DL, DstVT, Zero);
 
-    SDValue Glue;
-    SDValue ZeroReg = DAG.getCopyToReg(ZeroImm, DL, SPEX::RX, Glue); 
+    SDNode *Mov = DAG.getMachineNode(MovOpc, DL, DstVT, Src);
 
-    return SDValue(DAG.getMachineNode(Opc, DL, MVT::Glue, ZeroReg, Src), 0);
+    return SDValue(Mov, 0);
   }
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);

@@ -121,6 +121,45 @@ bool SPEXDAGToDAGISel::SelectAddrRR(SDValue Addr, SDValue &Base,
   return false;
 }
 
+static SDNode *emitRXMoveWithOptionalClear(SelectionDAG &DAG, const SDLoc &DL,
+                                           EVT DstVT, SDValue Src,
+                                           unsigned SrcBits,
+                                           bool ClearHighBitsWithZero) {
+  SDValue Glue;
+  if (ClearHighBitsWithZero) {
+    SDValue Imm0 = DAG.getTargetConstant(0, DL, MVT::i64);
+    SDNode *LiN = DAG.getMachineNode(SPEX::PSEUDO_LI64, DL, MVT::Glue, Imm0);
+    Glue = SDValue(LiN, 0);
+  }
+  unsigned MovOpc = 0;
+  switch (SrcBits) {
+  case 8:
+    MovOpc = SPEX::MOVMOV8;
+    break;
+  case 16:
+    MovOpc = SPEX::MOVMOV16;
+    break;
+  case 32:
+    MovOpc = SPEX::MOVMOV32;
+    break;
+  default:
+    llvm_unreachable("Unsupported size of values to extend");
+  }
+  SDNode *MovN = nullptr;
+
+  if (Glue.getNode()) {
+    MovN = DAG.getMachineNode(MovOpc, DL, MVT::Glue, Src, Glue);
+  } else {
+    MovN = DAG.getMachineNode(MovOpc, DL, MVT::Glue, Src);
+  }
+  Glue = SDValue(MovN, 0);
+
+  SDValue Chain = DAG.getEntryNode();
+  SDValue CFR = DAG.getCopyFromReg(Chain, DL, SPEX::RX, DstVT, Glue);
+
+  return CFR.getNode();
+}
+
 void SPEXDAGToDAGISel::Select(SDNode *Node) {
   if (Node->isMachineOpcode()) {
     return;
@@ -343,6 +382,49 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     SDNode *Call =
         CurDAG->getMachineNode(CallOpc, DL, MVT::Other, MVT::Glue, Ops);
     ReplaceNode(Node, Call);
+    return;
+  }
+
+  case ISD::ZERO_EXTEND: {
+    SDLoc DL(Node);
+    SDValue Src = Node->getOperand(0);
+    EVT SrcVT = Src.getValueType();
+    EVT DstVT = Node->getValueType(0);
+
+    if (!DstVT.isSimple() || !SrcVT.isSimple())
+      break;
+
+    unsigned SrcBits = SrcVT.getSizeInBits();
+    unsigned DstBits = DstVT.getSizeInBits();
+
+    if (SrcBits >= DstBits) {
+      ReplaceNode(Node, Src.getNode());
+    } else {
+      SDNode *N =
+          emitRXMoveWithOptionalClear(*CurDAG, DL, DstVT, Src, SrcBits, true);
+      ReplaceNode(Node, N);
+    }
+    return;
+  }
+  case ISD::ANY_EXTEND: {
+    SDLoc DL(Node);
+    SDValue Src = Node->getOperand(0);
+    EVT SrcVT = Src.getValueType();
+    EVT DstVT = Node->getValueType(0);
+
+    if (!DstVT.isSimple() || !SrcVT.isSimple())
+      break;
+
+    unsigned SrcBits = SrcVT.getSizeInBits();
+    unsigned DstBits = DstVT.getSizeInBits();
+
+    if (SrcBits >= DstBits) {
+      ReplaceNode(Node, Src.getNode());
+    } else {
+      SDNode *N =
+          emitRXMoveWithOptionalClear(*CurDAG, DL, DstVT, Src, SrcBits, false);
+      ReplaceNode(Node, N);
+    }
     return;
   }
 

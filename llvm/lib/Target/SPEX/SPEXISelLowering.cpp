@@ -220,41 +220,6 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     SDNode *N = DAG.getMachineNode(Opc, DL, DstVT, Src);
     return SDValue(N, 0);
   }
-  case ISD::ZERO_EXTEND: {
-    SDLoc DL(Op);
-    SDValue Src = Op.getOperand(0);
-    EVT DstVT = Op.getValueType();
-    EVT SrcVT = Src.getValueType();
-
-    if (!DstVT.isSimple() || !SrcVT.isSimple())
-      break;
-
-    unsigned DstBits = DstVT.getSimpleVT().getSizeInBits();
-    unsigned SrcBits = SrcVT.getSimpleVT().getSizeInBits();
-
-    if (SrcBits >= DstBits)
-      return Src;
-
-    unsigned MovOpc = 0;
-    if (DstBits == 64)
-      MovOpc = SPEX::MOVMOV64;
-    else if (DstBits == 32)
-      MovOpc = SPEX::MOVMOV32;
-    else if (DstBits == 16)
-      MovOpc = SPEX::MOVMOV16;
-    else if (DstBits == 8)
-      MovOpc = SPEX::MOVMOV8;
-    else
-      break;
-
-    // RX = 0
-    SDValue Zero = DAG.getConstant(0, DL, DstVT);
-    SDNode *Li = DAG.getMachineNode(SPEX::PSEUDO_LI64, DL, DstVT, Zero);
-
-    SDNode *Mov = DAG.getMachineNode(MovOpc, DL, DstVT, Src);
-
-    return SDValue(Mov, 0);
-  }
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();

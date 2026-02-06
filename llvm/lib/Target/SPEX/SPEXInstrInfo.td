@@ -50,11 +50,11 @@ def SPEXImm9  : Operand<i32> {
   let ParserMatchClass = SPEXImm9AsmOperand;
   let DecoderMethod = "DecodeSPEXImm9";
 }
-def SPEXImm32_8 : Operand<i8> { 
+def SPEXImm8 : Operand<i8> { 
   let ParserMatchClass = SPEXImm32AsmOperand;
   let DecoderMethod = "DecodeSPEXImm32";
 }
-def SPEXImm32_16 : Operand<i16> {
+def SPEXImm16 : Operand<i16> {
   let ParserMatchClass = SPEXImm32AsmOperand;
   let DecoderMethod = "DecodeSPEXImm32";
 }
@@ -368,6 +368,14 @@ defm MOV: SPEX_MOV_SZ<"64", "64", 0b11>;
 
 // li*
 multiclass SPEX_LI_SZ<string def_suf, string asm_suf, bits<2> sz2> {
+  def LI#def_suf#"_8" : SPEXInstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEXImm8:$imm), 0x302, 0, sz2, 1, 0> {
+    let Defs = [RX];
+    let isCodeGenOnly = 1;
+  }
+  def LI#def_suf#"_16" : SPEXInstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEXImm16:$imm), 0x302, 0, sz2, 1, 0> {
+    let Defs = [RX];
+    let isCodeGenOnly = 1;
+  }
   def LI#def_suf#"_32" : SPEXInstNoR6<"li"#asm_suf#"\trx, $imm", (outs), (ins SPEXImm32:$imm), 0x302, 0, sz2, 1, 0> {
     let Defs = [RX];
   }

@@ -231,16 +231,18 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       ImmVT = MVT::i64;
       break;
     default:
-      break;
-    }
-
-    if (!Opc)
       return;
+    }
 
     auto *CN = cast<ConstantSDNode>(Node);
 
-    int64_t S = CN->getSExtValue();
-    SDValue Imm = CurDAG->getTargetConstant(S, DL, ImmVT);
+    int64_t V = CN->getZExtValue();
+
+    if (Bits == 8)  V &= 0xFFull;
+    if (Bits == 16) V &= 0xFFFFull;
+    if (Bits == 32) V &= 0xFFFFFFFFull;
+
+    SDValue Imm = CurDAG->getTargetConstant(V, DL, ImmVT);
 
     SDNode *Res = CurDAG->getMachineNode(Opc, DL, VT, Imm);
     ReplaceNode(Node, Res);

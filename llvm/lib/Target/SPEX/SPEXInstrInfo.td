@@ -397,6 +397,21 @@ multiclass SPEX_ALU_SZ<bits<12> opc, string mn, string def_suf,
     let Uses = [RX];
     let Defs = [RX];
   }
+
+  def NAME#def_suf#"_I8" : SPEXInstNoR6<mn#asm_suf#"\trx, $imm", (outs),
+                                      (ins SPEXImm8:$imm),
+                                      opc, 0, sz2, 1, 0> {
+    let Uses = [RX];
+    let Defs = [RX];
+    let isCodeGenOnly = 1;
+  }
+  def NAME#def_suf#"_I16" : SPEXInstNoR6<mn#asm_suf#"\trx, $imm", (outs),
+                                      (ins SPEXImm16:$imm),
+                                      opc, 0, sz2, 1, 0> {
+    let Uses = [RX];
+    let Defs = [RX];
+    let isCodeGenOnly = 1;
+  }
   def NAME#def_suf#"_I32" : SPEXInstNoR6<mn#asm_suf#"\trx, $imm", (outs),
                                       (ins SPEXImm32:$imm),
                                       opc, 0, sz2, 1, 0> {

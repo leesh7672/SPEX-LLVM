@@ -425,7 +425,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     }
 
     SDValue Chain = Node->getOperand(I + 0);
-    ISD::CondCode CC = cast<CondCodeSDNode>(Node->getOperand(1))->get();
+    ISD::CondCode CC = cast<CondCodeSDNode>(Node->getOperand(I + 1))->get();
     SDValue LHS = Node->getOperand(I + 2);
     SDValue RHS = Node->getOperand(I + 3);
     SDValue Dest = Node->getOperand(I + 4);

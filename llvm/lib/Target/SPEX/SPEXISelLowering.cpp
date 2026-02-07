@@ -61,18 +61,15 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
 
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
 
-  setOperationAction(ISD::SETCC, MVT::i8, Custom);
-  setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
-
-  setOperationAction(ISD::SETCC, MVT::i1, Promote);
-  setOperationAction(ISD::SELECT, MVT::i1, Promote);
-  setOperationAction(ISD::SELECT_CC, MVT::i1, Promote);
-  setOperationAction(ISD::XOR, MVT::i1, Promote);
-  setOperationAction(ISD::AND, MVT::i1, Promote);
-  setOperationAction(ISD::OR, MVT::i1, Promote);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i1, Promote);
-  setOperationAction(ISD::ZERO_EXTEND, MVT::i1, Promote);
-  setOperationAction(ISD::SIGN_EXTEND, MVT::i1, Promote);
+  setOperationAction(ISD::SETCC, MVT::i1, Expand);
+  setOperationAction(ISD::SELECT, MVT::i1, Expand);
+  setOperationAction(ISD::SELECT_CC, MVT::i1, Expand);
+  setOperationAction(ISD::XOR, MVT::i1, Expand);
+  setOperationAction(ISD::AND, MVT::i1, Expand);
+  setOperationAction(ISD::OR, MVT::i1, Expand);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i1, Expand);
+  setOperationAction(ISD::ZERO_EXTEND, MVT::i1, Expand);
+  setOperationAction(ISD::SIGN_EXTEND, MVT::i1, Expand);
   setOperationAction(ISD::TRUNCATE, MVT::i1, Expand);
 
   setBooleanContents(ZeroOrOneBooleanContent);
@@ -217,7 +214,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     auto CC = cast<CondCodeSDNode>(N->getOperand(4))->get();
 
     EVT ResVT = Op.getValueType();
-    SDValue Cond = DAG.getSetCC(DL, MVT::i8, LHS, RHS, CC);
+    SDValue Cond = DAG.getSetCC(DL, MVT::i1, LHS, RHS, CC);
 
     return DAG.getSelect(DL, ResVT, Cond, TrueV, FalseV);
   }
@@ -663,5 +660,5 @@ SDValue SPEXTargetLowering::lowerCallResult(
 
 EVT SPEXTargetLowering::getSetCCResultType(const DataLayout &DL,
                                            LLVMContext &Context, EVT VT) const {
-  return MVT::i8;
+  return MVT::i1;
 }

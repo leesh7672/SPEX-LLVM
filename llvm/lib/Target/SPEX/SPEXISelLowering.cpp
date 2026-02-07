@@ -216,9 +216,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
   case ISD::BR:
     return LowerBR(Op.getOperand(0), Op.getOperand(1), SDLoc(Op), DAG);
   case ISD::BR_CC:
-    return LowerBR_CC(
-        Op.getOperand(0), cast<CondCodeSDNode>(Op.getOperand(1))->get(),
-        Op.getOperand(2), Op.getOperand(3), Op.getOperand(4), SDLoc(Op), DAG);
+    return LowerBR_CC(Op, DAG);
   case ISD::BRCOND:
     return LowerBRCOND(Op, DAG);
   case ISD::SHL:
@@ -446,10 +444,15 @@ SDValue SPEXTargetLowering::LowerShift(SDValue Op, SelectionDAG &DAG,
   return DAG.getNode(TgtOpc, DL, VT, Op.getOperand(0), Imm);
 }
 
-SDValue SPEXTargetLowering::LowerBR_CC(SDValue Chain, ISD::CondCode CC,
-                                       SDValue LHS, SDValue RHS, SDValue Dest,
-                                       const SDLoc &DL,
-                                       SelectionDAG &DAG) const {
+SDValue SPEXTargetLowering::LowerBR_CC(SDValue Op, SelectionDAG &DAG) const {
+  SDValue CCVal = DAG.getCondCode(CC);
+
+  SDValue Chain = Op.getOperand(0);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(1))->get();
+  SDValue LHS = Op.getOperand(2);
+  SDValue RHS = Op.getOperand(3);
+  SDValue Dest = Op.getOperand(4);
+
   SDValue CCVal = DAG.getCondCode(CC);
   return DAG.getNode(SPEXISD::BR_CC, DL, MVT::Other, Chain, LHS, RHS, CCVal,
                      Dest);
@@ -471,8 +474,8 @@ SDValue SPEXTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
 
   SDValue Zero = DAG.getConstant(0, DL, CondVT);
 
-  return DAG.getNode(SPEXISD::BR_CC, DL, MVT::Other,
-      Chain, Cond, Zero, DAG.getCondCode(ISD::SETNE), Dest);
+  return DAG.getNode(SPEXISD::BR_CC, DL, MVT::Other, Chain, Cond, Zero,
+                     DAG.getCondCode(ISD::SETNE), Dest);
 }
 
 SDValue SPEXTargetLowering::LowerBR(SDValue Chain, SDValue Dest,

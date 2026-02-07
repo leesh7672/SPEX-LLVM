@@ -56,8 +56,7 @@ public:
 
   SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
 
-  SDValue LowerBR_CC(SDValue Chain, ISD::CondCode CC, SDValue LHS, SDValue RHS,
-                     SDValue Dest, const SDLoc &DL, SelectionDAG &DAG) const;
+  SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) const;
 
   SDValue LowerShift(SDValue Op, SelectionDAG &DAG, unsigned TgtOpc) const;
 

@@ -488,8 +488,8 @@ SDValue SPEXTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
 
   SDValue Zero = DAG.getConstant(0, DL, Cond.getValueType());
 
-  return DAG.getNode(ISD::BR_CC, DL, MVT::Other, Chain, Cond, Zero,
-                     DAG.getCondCode(ISD::SETNE), Dest);
+  return DAG.getNode(ISD::BR_CC, DL, MVT::Other, Chain,
+                     DAG.getCondCode(ISD::SETNE), Cond, Zero, Dest);
 }
 
 SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,

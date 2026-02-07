@@ -271,7 +271,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     if (SrcBits >= DstBits)
       return Src;
 
-    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
+    if (!(SrcBits == 1 || SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
       break;
     if (!(DstBits == 16 || DstBits == 32 || DstBits == 64))
       break;
@@ -293,7 +293,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     if (SrcBits >= DstBits)
       return Src;
 
-    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
+    if (!(SrcBits == 1 || SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
       break;
     if (!(DstBits == 16 || DstBits == 32 || DstBits == 64))
       break;

@@ -407,8 +407,12 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
   case ISD::BR: {
     SDValue Chain = Node->getOperand(0);
-    SDValue Dest = Node->getOperand(1); // BasicBlock
-    SDValue Ops[] = {Dest, Chain};
+    SDValue Dest = Node->getOperand(1);
+
+    auto *BB = cast<BasicBlockSDNode>(Dest)->getBasicBlock();
+    SDValue TBB = CurDAG->getBasicBlock(BB);
+
+    SDValue Ops[] = {TBB, Chain};
     SDNode *Br = CurDAG->getMachineNode(SPEX::JMP, DL, MVT::Other, Ops);
     ReplaceNode(Node, Br);
     return;
@@ -438,8 +442,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     unsigned CmpOpc = 0;
     SmallVector<SDValue, 6> CmpOps;
 
-    CmpOps.push_back(CopyCh);
-
     if (auto *CN = dyn_cast<ConstantSDNode>(RHS)) {
       int64_t Imm = CN->getSExtValue();
 
@@ -455,17 +457,21 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       CmpOps.push_back(RHS);
     }
 
+    CmpOps.push_back(CopyCh);
     CmpOps.push_back(CopyGlue);
 
     SDNode *CmpN =
         CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
-    SDValue CmpCh(CmpN, 0);
-    SDValue CmpGlue(CmpN, 1);
+    SDValue CmpGlue(CmpN, 0);
+    SDValue CmpCh(CmpN, 1);
 
     SmallVector<SDValue, 4> BrOps;
 
+    auto *BB = cast<BasicBlockSDNode>(Dest)->getBasicBlock();
+    SDValue TBB = CurDAG->getBasicBlock(BB);
+
+    BrOps.push_back(TBB);
     BrOps.push_back(CmpCh);
-    BrOps.push_back(Dest);
     BrOps.push_back(CmpGlue);
 
     SDNode *BrN =

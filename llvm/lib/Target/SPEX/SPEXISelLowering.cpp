@@ -61,6 +61,9 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
 
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
 
+  setOperationAction(ISD::SETCC, MVT::i8, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
+
   setOperationAction(ISD::SETCC, MVT::i1, Promote);
   setOperationAction(ISD::SELECT, MVT::i1, Promote);
   setOperationAction(ISD::SELECT_CC, MVT::i1, Promote);
@@ -103,14 +106,14 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
 SPEXTargetLowering::LegalizeKind
 SPEXTargetLowering::getTypeConversion(LLVMContext &ctx, EVT VT) {
   if (VT == MVT::i1) {
-    return LegalizeKind(TargetLoweringBase::TypePromoteInteger, MVT::i32);
+    return LegalizeKind(TargetLoweringBase::TypePromoteInteger, MVT::i8);
   }
   return this->TargetLowering::getTypeConversion(ctx, VT);
 }
 
 EVT SPEXTargetLowering::getTypeToTransformTo(LLVMContext &ctx, EVT VT) const {
   if (VT == MVT::i1) {
-    return MVT::i32;
+    return MVT::i8;
   }
   return this->TargetLowering::getTypeToTransformTo(ctx, VT);
 }
@@ -188,6 +191,21 @@ static SDValue emitRXMoveWithOptionalClearValue(SelectionDAG &DAG,
 SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
                                            SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
+  case ISD::SETCC: {
+    SDLoc DL(Op);
+    auto *N = cast<SDNode>(Op);
+
+    SDValue LHS = N->getOperand(0);
+    SDValue RHS = N->getOperand(1);
+    auto CC = cast<CondCodeSDNode>(N->getOperand(2))->get();
+
+    EVT ResVT = Op.getValueType();
+
+    SDValue One = DAG.getConstant(1, DL, ResVT);
+    SDValue Zero = DAG.getConstant(0, DL, ResVT);
+
+    return DAG.getSelectCC(DL, LHS, RHS, One, Zero, CC);
+  }
   case ISD::SELECT_CC: {
     SDLoc DL(Op);
     auto *N = cast<SDNode>(Op);
@@ -199,7 +217,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     auto CC = cast<CondCodeSDNode>(N->getOperand(4))->get();
 
     EVT ResVT = Op.getValueType();
-    SDValue Cond = DAG.getSetCC(DL, MVT::i1, LHS, RHS, CC);
+    SDValue Cond = DAG.getSetCC(DL, MVT::i8, LHS, RHS, CC);
 
     return DAG.getSelect(DL, ResVT, Cond, TrueV, FalseV);
   }
@@ -290,8 +308,10 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     unsigned SrcBits = SrcVT.getSizeInBits();
     unsigned DstBits = DstVT.getSizeInBits();
 
-    if (SrcBits >= DstBits)
+    if (SrcBits == DstBits)
       return Src;
+    if (SrcBits > DstBits)
+      return DAG.getNode(ISD::TRUNCATE, DL, DstVT, Src);
 
     if (!(SrcBits == 1 || SrcBits == 8 || SrcBits == 16 || SrcBits == 32))
       break;
@@ -640,5 +660,5 @@ SDValue SPEXTargetLowering::lowerCallResult(
 
 EVT SPEXTargetLowering::getSetCCResultType(const DataLayout &DL,
                                            LLVMContext &Context, EVT VT) const {
-  return MVT::i1;
+  return MVT::i8;
 }

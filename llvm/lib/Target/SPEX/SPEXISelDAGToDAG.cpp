@@ -466,8 +466,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     BrOps.push_back(Dest);
     BrOps.push_back(CmpCh);
 
-    SDNode *BrN =
-        CurDAG->getMachineNode(getBcc(CC), DL, MVT::Other, BrOps);
+    SDNode *BrN = CurDAG->getMachineNode(getBcc(CC), DL, MVT::Other, BrOps);
     ReplaceNode(Node, BrN);
 
     return;

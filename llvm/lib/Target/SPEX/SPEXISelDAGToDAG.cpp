@@ -465,7 +465,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SmallVector<SDValue, 4> BrOps;
 
-    BrOps.push_back(LHS);
     BrOps.push_back(CmpCh);
     BrOps.push_back(Dest);
     BrOps.push_back(CmpGlue);

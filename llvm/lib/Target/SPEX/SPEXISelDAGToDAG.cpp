@@ -347,7 +347,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
 
-  case ISD::BR: {
+  case SPEXISD::BR: {
     SDValue Chain = Node->getOperand(0);
     SDValue Dest = Node->getOperand(1); // BasicBlock
     SDValue Ops[] = {Dest, Chain};
@@ -375,9 +375,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     SDValue CopyCh = CopyTo.getValue(0);
     SDValue CopyGlue = CopyTo.getValue(1);
 
-    unsigned CmpOpc = 0;
-    SmallVector<SDValue, 6> CmpOps;
-
     unsigned LBits = LHS.getValueType().getSizeInBits();
     bool RHSIsImm = isa<ConstantSDNode>(RHS);
 
@@ -400,6 +397,9 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
         default: llvm_unreachable("bad cmp width");
       }
     };
+
+    unsigned CmpOpc = 0;
+    SmallVector<SDValue, 6> CmpOps;
 
     if (RHSIsImm){
       CmpOpc = pickCmpI(LHS.getValueType().getSizeInBits());
@@ -454,8 +454,8 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     }
 
     SmallVector<SDValue, 4> BrOps;
-    BrOps.push_back(RHS);
     BrOps.push_back(Dest);
+    BrOps.push_back(LHS);
     BrOps.push_back(CmpGlue);
 
     SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);
@@ -469,8 +469,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     EVT OutVT = Node->getValueType(0);
     EVT InVT = cast<VTSDNode>(Node->getOperand(1))->getVT();
 
-    // We only handle the common integer cases here (e.g. i64 sext_inreg(...,
-    // i8)).
     if (!OutVT.isSimple() || !InVT.isSimple() || !OutVT.isInteger() ||
         !InVT.isInteger())
       break;
@@ -480,9 +478,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     if (InBits >= OutBits)
       break;
 
-    // SPEX shift instructions operate on the implicit accumulator RX with an
-    // immediate shift amount. Emit: RX = src; RX <<= shamt; RX sra= shamt;
-    // dst = RX;
     unsigned ShAmt = OutBits - InBits;
 
     SDValue Src = Node->getOperand(0);

@@ -127,6 +127,10 @@ const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
     return "SPEXISD::LWAIT";
   case SPEXISD::LWAKE:
     return "SPEXISD::LWAKE";
+  case SPEXISD::BR:
+    return "SPEXISD::BR";
+  case SPEXISD::BR_CC:
+    return "SPEXISD::BR_CC";
   default:
     return nullptr;
   }
@@ -476,7 +480,7 @@ SDValue SPEXTargetLowering::LowerBR_CC(SDValue Chain, ISD::CondCode CC,
 
   MVT VT = MVT::i64;
   EVT RHST = RHS.getValueType();
-  EVT LHST = RHS.getValueType();
+  EVT LHST = LHS.getValueType();
 
   if (LHST.isSimple() && RHST.isSimple()) {
     unsigned LB = LHST.getSimpleVT().getSizeInBits();

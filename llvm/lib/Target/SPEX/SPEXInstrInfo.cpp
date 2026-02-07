@@ -55,31 +55,44 @@ void SPEXInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   report_fatal_error("SPEX copyPhysReg: unsupported register copy");
 }
 
-static unsigned getCondBranchOpcode(ISD::CondCode CC, bool Is64) {
+static unsigned getCondBranchOpcode(ISD::CondCode CC) {
+  unsigned BccOpc;
   switch (CC) {
-  case ISD::SETEQ:
-    return Is64 ? SPEX::BCC_eq_64 : SPEX::BCC_eq_32;
-  case ISD::SETNE:
-    return Is64 ? SPEX::BCC_ne_64 : SPEX::BCC_ne_32;
-  case ISD::SETLT:
-    return Is64 ? SPEX::BCC_lt_64 : SPEX::BCC_lt_32;
-  case ISD::SETLE:
-    return Is64 ? SPEX::BCC_le_64 : SPEX::BCC_le_32;
-  case ISD::SETGT:
-    return Is64 ? SPEX::BCC_gt_64 : SPEX::BCC_gt_32;
-  case ISD::SETGE:
-    return Is64 ? SPEX::BCC_ge_64 : SPEX::BCC_ge_32;
-  case ISD::SETULT:
-    return Is64 ? SPEX::BCC_ltu_64 : SPEX::BCC_ltu_32;
-  case ISD::SETULE:
-    return Is64 ? SPEX::BCC_leu_64 : SPEX::BCC_leu_32;
-  case ISD::SETUGT:
-    return Is64 ? SPEX::BCC_gtu_64 : SPEX::BCC_gtu_32;
-  case ISD::SETUGE:
-    return Is64 ? SPEX::BCC_geu_64 : SPEX::BCC_geu_32;
-  default:
-    report_fatal_error("SPEX: unsupported branch condition");
-  }
+    case ISD::SETEQ:
+      BccOpc = SPEX::BCC_eq_I64;
+      break;
+    case ISD::SETNE:
+      BccOpc = SPEX::BCC_ne_I64;
+      break;
+    case ISD::SETLT:
+      BccOpc = SPEX::BCC_lt_I64;
+      break;
+    case ISD::SETULT:
+      BccOpc = SPEX::BCC_ltu_I64;
+      break;
+    case ISD::SETLE:
+      BccOpc = SPEX::BCC_le_I64;
+      break;
+    case ISD::SETULE:
+      BccOpc = SPEX::BCC_leu_I64;
+      break;
+    case ISD::SETGT:
+      BccOpc = SPEX::BCC_gt_I64;
+      break;
+    case ISD::SETUGT:
+      BccOpc = SPEX::BCC_gtu_I64;
+      break;
+    case ISD::SETGE:
+      BccOpc = SPEX::BCC_ge_I64;
+      break;
+    case ISD::SETUGE:
+      BccOpc = SPEX::BCC_geu_I64;
+      break;
+    default:
+      report_fatal_error("SPEX: unsupported branch condition");
+      break;
+    }
+  return BccOpc;
 }
 
 void SPEXInstrInfo::storeRegToStackSlot(
@@ -614,28 +627,6 @@ bool SPEXInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     MI.eraseFromParent();
     return true;
   }
-  case SPEX::PSEUDO_BR: {
-    MachineBasicBlock *Dest = MI.getOperand(0).getMBB();
-    BuildMI(MBB, I, DL, get(SPEX::JMP)).addMBB(Dest);
-    MI.eraseFromParent();
-    return true;
-  }
-  case SPEX::PSEUDO_BR_CC32:
-  case SPEX::PSEUDO_BR_CC64: {
-    Register LHS = MI.getOperand(0).getReg();
-    Register RHS = MI.getOperand(1).getReg();
-    MachineBasicBlock *Dest = MI.getOperand(2).getMBB();
-    auto CC = static_cast<ISD::CondCode>(MI.getOperand(3).getImm());
-    bool Is32 = MI.getOpcode() == SPEX::PSEUDO_BR_CC32;
-    unsigned CmpOpc = Is32 ? SPEX::CMP32_R : SPEX::CMP64_R;
-    unsigned MovOpc = Is32 ? SPEX::MOVMOV32 : SPEX::MOVMOV64;
-    BuildMI(MBB, I, DL, get(MovOpc)).addReg(LHS);
-    BuildMI(MBB, I, DL, get(CmpOpc)).addReg(RHS);
-    BuildMI(MBB, I, DL, get(getCondBranchOpcode(CC, !Is32))).addMBB(Dest);
-    MI.eraseFromParent();
-    return true;
-  }
-
   case SPEX::PSEUDO_NOT32r: {
     Register Dst = MI.getOperand(0).getReg();
     Register Src = MI.getOperand(1).getReg();

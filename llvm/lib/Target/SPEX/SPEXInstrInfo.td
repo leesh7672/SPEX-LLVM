@@ -176,101 +176,101 @@ def LWAIT   : SPEXInstNoR6<"lwait", (outs), (ins), 0x00D, 0, 0b00, 0, 0>;
 def LWAKE   : SPEXInstNoR6<"lwake", (outs), (ins), 0x00E, 0, 0b00, 0, 0>;
 }
 
-// bcc (absolute target, hyphenated condition, width in mnemonic)
-def BCC_eq_32 : SPEXBCCInst<"bcc-eq\t$target", (outs),
+// bcc (absolute target, hyphenated condition, no width in mnemonic)
+def BCC_eq_I32 : SPEXBCCInst<"bcc-eq\t$target", (outs),
                               (ins brtarget:$target), 0, 0> {
 }
-def BCC_eq_64 : SPEXBCCInst<"bcc-eq\t$target", (outs),
+def BCC_eq_I64 : SPEXBCCInst<"bcc-eq\t$target", (outs),
                               (ins brtarget:$target), 0, 1> {
 }
-def BCC_ne_32 : SPEXBCCInst<"bcc-ne\t$target", (outs),
+def BCC_ne_I32 : SPEXBCCInst<"bcc-ne\t$target", (outs),
                               (ins brtarget:$target), 1, 0> {
 }
-def BCC_ne_64 : SPEXBCCInst<"bcc-ne\t$target", (outs),
+def BCC_ne_I64 : SPEXBCCInst<"bcc-ne\t$target", (outs),
                               (ins brtarget:$target), 1, 1> {
 }
-def BCC_lt_32 : SPEXBCCInst<"bcc-lt\t$target", (outs),
+def BCC_lt_I32 : SPEXBCCInst<"bcc-lt\t$target", (outs),
                               (ins brtarget:$target), 2, 0> {
 }
-def BCC_lt_64 : SPEXBCCInst<"bcc-lt\t$target", (outs),
+def BCC_lt_I64 : SPEXBCCInst<"bcc-lt\t$target", (outs),
                               (ins brtarget:$target), 2, 1> {
 }
-def BCC_ge_32 : SPEXBCCInst<"bcc-ge\t$target", (outs),
+def BCC_ge_I32 : SPEXBCCInst<"bcc-ge\t$target", (outs),
                               (ins brtarget:$target), 3, 0> {
 }
-def BCC_ge_64 : SPEXBCCInst<"bcc-ge\t$target", (outs),
+def BCC_ge_I64 : SPEXBCCInst<"bcc-ge\t$target", (outs),
                               (ins brtarget:$target), 3, 1> {
 }
-def BCC_le_32 : SPEXBCCInst<"bcc-le\t$target", (outs),
+def BCC_le_I32 : SPEXBCCInst<"bcc-le\t$target", (outs),
                               (ins brtarget:$target), 4, 0> {
 }
-def BCC_le_64 : SPEXBCCInst<"bcc-le\t$target", (outs),
+def BCC_le_I64 : SPEXBCCInst<"bcc-le\t$target", (outs),
                               (ins brtarget:$target), 4, 1> {
 }
-def BCC_gt_32 : SPEXBCCInst<"bcc-gt\t$target", (outs),
+def BCC_gt_I32 : SPEXBCCInst<"bcc-gt\t$target", (outs),
                               (ins brtarget:$target), 5, 0> {
 }
-def BCC_gt_64 : SPEXBCCInst<"bcc-gt\t$target", (outs),
+def BCC_gt_I64 : SPEXBCCInst<"bcc-gt\t$target", (outs),
                               (ins brtarget:$target), 5, 1> {
 }
-def BCC_ltu_32 : SPEXBCCInst<"bcc-ltu\t$target", (outs),
+def BCC_ltu_I32 : SPEXBCCInst<"bcc-ltu\t$target", (outs),
                                (ins brtarget:$target), 6, 0> {
 }
-def BCC_ltu_64 : SPEXBCCInst<"bcc-ltu\t$target", (outs),
+def BCC_ltu_I64 : SPEXBCCInst<"bcc-ltu\t$target", (outs),
                                (ins brtarget:$target), 6, 1> {
 }
-def BCC_geu_32 : SPEXBCCInst<"bcc-geu\t$target", (outs),
+def BCC_geu_I32 : SPEXBCCInst<"bcc-geu\t$target", (outs),
                                (ins brtarget:$target), 7, 0> {
 }
-def BCC_geu_64 : SPEXBCCInst<"bcc-geu\t$target", (outs),
+def BCC_geu_I64 : SPEXBCCInst<"bcc-geu\t$target", (outs),
                                (ins brtarget:$target), 7, 1> {
 }
-def BCC_leu_32 : SPEXBCCInst<"bcc-leu\t$target", (outs),
+def BCC_leu_I32 : SPEXBCCInst<"bcc-leu\t$target", (outs),
                                (ins brtarget:$target), 8, 0> {
 }
-def BCC_leu_64 : SPEXBCCInst<"bcc-leu\t$target", (outs),
+def BCC_leu_I64 : SPEXBCCInst<"bcc-leu\t$target", (outs),
                                (ins brtarget:$target), 8, 1> {
 }
-def BCC_gtu_32 : SPEXBCCInst<"bcc-gtu\t$target", (outs),
+def BCC_gtu_I32 : SPEXBCCInst<"bcc-gtu\t$target", (outs),
                                (ins brtarget:$target), 9, 0> {
 }
-def BCC_gtu_64 : SPEXBCCInst<"bcc-gtu\t$target", (outs),
+def BCC_gtu_I64 : SPEXBCCInst<"bcc-gtu\t$target", (outs),
                                (ins brtarget:$target), 9, 1> {
 }
-def BCC_vs_32 : SPEXBCCInst<"bcc-vs\t$target", (outs),
+def BCC_vs_I32 : SPEXBCCInst<"bcc-vs\t$target", (outs),
                               (ins brtarget:$target), 10, 0> {
 }
-def BCC_vs_64 : SPEXBCCInst<"bcc-vs\t$target", (outs),
+def BCC_vs_I64 : SPEXBCCInst<"bcc-vs\t$target", (outs),
                               (ins brtarget:$target), 10, 1> {
 }
-def BCC_vc_32 : SPEXBCCInst<"bcc-vc\t$target", (outs),
+def BCC_vc_I32 : SPEXBCCInst<"bcc-vc\t$target", (outs),
                               (ins brtarget:$target), 11, 0> {
 }
-def BCC_vc_64 : SPEXBCCInst<"bcc-vc\t$target", (outs),
+def BCC_vc_I64 : SPEXBCCInst<"bcc-vc\t$target", (outs),
                               (ins brtarget:$target), 11, 1> {
 }
-def BCC_mi_32 : SPEXBCCInst<"bcc-mi\t$target", (outs),
+def BCC_mi_I32 : SPEXBCCInst<"bcc-mi\t$target", (outs),
                               (ins brtarget:$target), 12, 0> {
 }
-def BCC_mi_64 : SPEXBCCInst<"bcc-mi\t$target", (outs),
+def BCC_mi_I64 : SPEXBCCInst<"bcc-mi\t$target", (outs),
                               (ins brtarget:$target), 12, 1> {
 }
-def BCC_pl_32 : SPEXBCCInst<"bcc-pl\t$target", (outs),
+def BCC_pl_I32 : SPEXBCCInst<"bcc-pl\t$target", (outs),
                               (ins brtarget:$target), 13, 0> {
 }
-def BCC_pl_64 : SPEXBCCInst<"bcc-pl\t$target", (outs),
+def BCC_pl_I64 : SPEXBCCInst<"bcc-pl\t$target", (outs),
                               (ins brtarget:$target), 13, 1> {
 }
-def BCC_cs_32 : SPEXBCCInst<"bcc-cs\t$target", (outs),
+def BCC_cs_I32 : SPEXBCCInst<"bcc-cs\t$target", (outs),
                               (ins brtarget:$target), 14, 0> {
 }
-def BCC_cs_64 : SPEXBCCInst<"bcc-cs\t$target", (outs),
+def BCC_cs_I64 : SPEXBCCInst<"bcc-cs\t$target", (outs),
                               (ins brtarget:$target), 14, 1> {
 }
-def BCC_cc_32 : SPEXBCCInst<"bcc-cc\t$target", (outs),
+def BCC_cc_I32 : SPEXBCCInst<"bcc-cc\t$target", (outs),
                               (ins brtarget:$target), 15, 0> {
 }
-def BCC_cc_64 : SPEXBCCInst<"bcc-cc\t$target", (outs),
+def BCC_cc_I64 : SPEXBCCInst<"bcc-cc\t$target", (outs),
                               (ins brtarget:$target), 15, 1> {
 }
 
@@ -638,16 +638,6 @@ class SPEXPseudoInst<dag outs, dag ins> : Instruction {
   let isPseudo = 1;
   let isCodeGenOnly = 1;
   let hasNoSchedulingInfo = 1;
-}
-
-let hasSideEffects = 1, isBranch = 1, isTerminator = 1, isBarrier = 1 in {
-  def PSEUDO_BR : SPEXPseudoInst<(outs), (ins brtarget:$dst)>;
-  def PSEUDO_BR_CC32 : SPEXPseudoInst<(outs),
-                                       (ins GPR:$lhs, GPR:$rhs, brtarget:$dst,
-                                            i32imm:$cc)>;
-  def PSEUDO_BR_CC64 : SPEXPseudoInst<(outs),
-                                       (ins GPR:$lhs, GPR:$rhs, brtarget:$dst,
-                                            i32imm:$cc)>;
 }
 
 def PSEUDO_LI32 : SPEXPseudoInst<(outs GPR:$dst), (ins SPEXImm32:$imm)>;
@@ -1022,5 +1012,3 @@ def : Pat<(not i32:$val), (PSEUDO_NOT32r i32:$val)>;
 def : Pat<(not i64:$val), (PSEUDO_NOT64r i64:$val)>;
 
 defm : RemapAllTargetPseudoPointerOperands<GPR>;
-
-def : Pat<(br bb:$dst), (PSEUDO_BR brtarget:$dst)>;

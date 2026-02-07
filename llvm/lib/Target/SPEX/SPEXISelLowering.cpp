@@ -121,10 +121,6 @@ const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
     return "SPEXISD::CALL";
   case SPEXISD::RET:
     return "SPEXISD::RET";
-  case SPEXISD::BR:
-    return "SPEXISD::BR";
-  case SPEXISD::BR_CC:
-    return "SPEXISD::BR_CC";
   case SPEXISD::LSTOP:
     return "SPEXISD::LSTOP";
   case SPEXISD::LWAIT:
@@ -511,14 +507,13 @@ SDValue SPEXTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
   }
 
   SDValue Zero = DAG.getConstant(0, DL, CondVT);
-  SDValue CC = DAG.getCondCode(ISD::SETNE);
 
-  return DAG.getNode(ISD::BR_CC, DL, MVT::Other, Chain, CC, Cond, Zero, Dest);
+  return LowerBR_CC(Chain, ISD::SETNE, Cond, Zero, Dest, DL, DAG);
 }
 
 SDValue SPEXTargetLowering::LowerBR(SDValue Chain, SDValue Dest,
                                     const SDLoc &DL, SelectionDAG &DAG) const {
-  return DAG.getNode(SPEXISD::BR, DL, MVT::Other, Chain, Dest);
+  return DAG.getNode(ISD::BR, DL, MVT::Other, Chain, Dest);
 }
 
 SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,

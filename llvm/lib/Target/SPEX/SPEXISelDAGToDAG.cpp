@@ -378,32 +378,42 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     unsigned LBits = LHS.getValueType().getSizeInBits();
     bool RHSIsImm = isa<ConstantSDNode>(RHS);
 
-    auto pickCmpR = [&]{
+    auto pickCmpR = [&] {
       switch (LBits) {
-        case 8:  return SPEX::CMP8_R;
-        case 16: return SPEX::CMP16_R;
-        case 32: return SPEX::CMP32_R;
-        case 64: return SPEX::CMP64_R;
-        default: llvm_unreachable("bad cmp width");
+      case 8:
+        return SPEX::CMP8_R;
+      case 16:
+        return SPEX::CMP16_R;
+      case 32:
+        return SPEX::CMP32_R;
+      case 64:
+        return SPEX::CMP64_R;
+      default:
+        llvm_unreachable("bad cmp width");
       }
     };
 
-    auto pickCmpI = [&](int64_t Imm){
+    auto pickCmpI = [&](int64_t Imm) {
       switch (LBits) {
-        case 8:  return SPEX::CMP8_I32; 
-        case 16: return SPEX::CMP16_I32;
-        case 32: return SPEX::CMP32_I32;
-        case 64: return isInt<32>(Imm) ? SPEX::CMP64_I32 : SPEX::CMP64_I64;
-        default: llvm_unreachable("bad cmp width");
+      case 8:
+        return SPEX::CMP8_I32;
+      case 16:
+        return SPEX::CMP16_I32;
+      case 32:
+        return SPEX::CMP32_I32;
+      case 64:
+        return isInt<32>(Imm) ? SPEX::CMP64_I32 : SPEX::CMP64_I64;
+      default:
+        llvm_unreachable("bad cmp width");
       }
     };
 
     unsigned CmpOpc = 0;
     SmallVector<SDValue, 6> CmpOps;
 
-    if (RHSIsImm){
+    if (RHSIsImm) {
       CmpOpc = pickCmpI(LHS.getValueType().getSizeInBits());
-    }else{
+    } else {
       CmpOpc = pickCmpR();
     }
 
@@ -454,8 +464,9 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     }
 
     SmallVector<SDValue, 4> BrOps;
-    BrOps.push_back(Dest);
+
     BrOps.push_back(LHS);
+    BrOps.push_back(Dest);
     BrOps.push_back(CmpGlue);
 
     SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);

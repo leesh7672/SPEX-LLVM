@@ -58,40 +58,40 @@ void SPEXInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 static unsigned getCondBranchOpcode(ISD::CondCode CC) {
   unsigned BccOpc;
   switch (CC) {
-    case ISD::SETEQ:
-      BccOpc = SPEX::BCC_eq_I64;
-      break;
-    case ISD::SETNE:
-      BccOpc = SPEX::BCC_ne_I64;
-      break;
-    case ISD::SETLT:
-      BccOpc = SPEX::BCC_lt_I64;
-      break;
-    case ISD::SETULT:
-      BccOpc = SPEX::BCC_ltu_I64;
-      break;
-    case ISD::SETLE:
-      BccOpc = SPEX::BCC_le_I64;
-      break;
-    case ISD::SETULE:
-      BccOpc = SPEX::BCC_leu_I64;
-      break;
-    case ISD::SETGT:
-      BccOpc = SPEX::BCC_gt_I64;
-      break;
-    case ISD::SETUGT:
-      BccOpc = SPEX::BCC_gtu_I64;
-      break;
-    case ISD::SETGE:
-      BccOpc = SPEX::BCC_ge_I64;
-      break;
-    case ISD::SETUGE:
-      BccOpc = SPEX::BCC_geu_I64;
-      break;
-    default:
-      report_fatal_error("SPEX: unsupported branch condition");
-      break;
-    }
+  case ISD::SETEQ:
+    BccOpc = SPEX::BCC_eq_I64;
+    break;
+  case ISD::SETNE:
+    BccOpc = SPEX::BCC_ne_I64;
+    break;
+  case ISD::SETLT:
+    BccOpc = SPEX::BCC_lt_I64;
+    break;
+  case ISD::SETULT:
+    BccOpc = SPEX::BCC_ltu_I64;
+    break;
+  case ISD::SETLE:
+    BccOpc = SPEX::BCC_le_I64;
+    break;
+  case ISD::SETULE:
+    BccOpc = SPEX::BCC_leu_I64;
+    break;
+  case ISD::SETGT:
+    BccOpc = SPEX::BCC_gt_I64;
+    break;
+  case ISD::SETUGT:
+    BccOpc = SPEX::BCC_gtu_I64;
+    break;
+  case ISD::SETGE:
+    BccOpc = SPEX::BCC_ge_I64;
+    break;
+  case ISD::SETUGE:
+    BccOpc = SPEX::BCC_geu_I64;
+    break;
+  default:
+    report_fatal_error("SPEX: unsupported branch condition");
+    break;
+  }
   return BccOpc;
 }
 

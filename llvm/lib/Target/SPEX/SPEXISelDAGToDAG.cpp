@@ -416,8 +416,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SDNode *CmpN =
         CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
-    SDValue CmpCh(CmpN, 0);
-    SDValue CmpGlue(CmpN, 1);
+    SDValue CmpGlue(CmpN, 0);
 
     unsigned BccOpc;
     switch (CC) {
@@ -458,11 +457,10 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SmallVector<SDValue, 4> BrOps;
 
-    BrOps.push_back(CmpCh);
     BrOps.push_back(Dest);
     BrOps.push_back(CmpGlue);
 
-    SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);
+    SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, CopyCh, Dest, CmpGlue);
     ReplaceNode(Node, BrN);
 
     return;
@@ -536,8 +534,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SDNode *CmpN =
         CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
-    SDValue CmpCh(CmpN, 0);
-    SDValue CmpGlue(CmpN, 1);
+    SDValue CmpGlue(CmpN, 0);
 
     unsigned BccOpc;
     switch (CC) {
@@ -578,11 +575,10 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SmallVector<SDValue, 4> BrOps;
 
-    BrOps.push_back(CmpCh);
     BrOps.push_back(Dest);
     BrOps.push_back(CmpGlue);
 
-    SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, BrOps);
+    SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, CopyCh, Dest, CmpGlue);
     ReplaceNode(Node, BrN);
 
     return;

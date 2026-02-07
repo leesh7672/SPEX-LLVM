@@ -409,10 +409,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     SDValue Chain = Node->getOperand(0);
     SDValue Dest = Node->getOperand(1);
 
-    auto *BB = cast<BasicBlockSDNode>(Dest)->getBasicBlock();
-    SDValue TBB = CurDAG->getBasicBlock(BB);
-
-    SDValue Ops[] = {TBB, Chain};
+    SDValue Ops[] = {Dest, Chain};
     SDNode *Br = CurDAG->getMachineNode(SPEX::JMP, DL, MVT::Other, Ops);
     ReplaceNode(Node, Br);
     return;
@@ -462,17 +459,12 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SDNode *CmpN =
         CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
-    SDValue CmpGlue(CmpN, 0);
-    SDValue CmpCh(CmpN, 1);
+    SDValue CmpCh(CmpN, 0);
 
     SmallVector<SDValue, 4> BrOps;
 
-    auto *BB = cast<BasicBlockSDNode>(Dest)->getBasicBlock();
-    SDValue TBB = CurDAG->getBasicBlock(BB);
-
-    BrOps.push_back(TBB);
+    BrOps.push_back(Dest);
     BrOps.push_back(CmpCh);
-    BrOps.push_back(CmpGlue);
 
     SDNode *BrN =
         CurDAG->getMachineNode(getBcc(CC), DL, MVT::Other, BrOps);

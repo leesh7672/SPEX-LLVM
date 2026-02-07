@@ -445,7 +445,7 @@ SDValue SPEXTargetLowering::LowerShift(SDValue Op, SelectionDAG &DAG,
 }
 
 SDValue SPEXTargetLowering::LowerBR_CC(SDValue Op, SelectionDAG &DAG) const {
-  SDValue CCVal = DAG.getCondCode(CC);
+  SDLoc DL(Op);
 
   SDValue Chain = Op.getOperand(0);
   ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(1))->get();

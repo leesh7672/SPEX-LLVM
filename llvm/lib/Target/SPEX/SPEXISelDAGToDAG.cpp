@@ -122,6 +122,64 @@ bool SPEXDAGToDAGISel::SelectAddrRR(SDValue Addr, SDValue &Base,
   return false;
 }
 
+static unsigned pickCmpR(unsigned Bits) {
+  switch (Bits) {
+  case 8:
+    return SPEX::CMP8_R;
+  case 16:
+    return SPEX::CMP16_R;
+  case 32:
+    return SPEX::CMP32_R;
+  case 64:
+    return SPEX::CMP64_R;
+  default:
+    llvm_unreachable("bad cmp width");
+  }
+}
+
+static unsigned pickCmpI(unsigned Bits, int64_t Imm) {
+  const bool Fit32 = isInt<32>(Imm);
+  switch (Bits) {
+  case 8:
+    return Fit32 ? SPEX::CMP8_I32 : SPEX::CMP8_I64;
+  case 16:
+    return Fit32 ? SPEX::CMP16_I32 : SPEX::CMP16_I64;
+  case 32:
+    return Fit32 ? SPEX::CMP32_I32 : SPEX::CMP32_I64;
+  case 64:
+    return Fit32 ? SPEX::CMP64_I32 : SPEX::CMP64_I64;
+  default:
+    llvm_unreachable("bad cmp width");
+  }
+}
+
+static unsigned getBcc(ISD::CondCode CC) {
+  switch (CC) {
+  case ISD::SETEQ:
+    return SPEX::BCC_eq_I64;
+  case ISD::SETNE:
+    return SPEX::BCC_ne_I64;
+  case ISD::SETLT:
+    return SPEX::BCC_lt_I64;
+  case ISD::SETULT:
+    return SPEX::BCC_ltu_I64;
+  case ISD::SETLE:
+    return SPEX::BCC_le_I64;
+  case ISD::SETULE:
+    return SPEX::BCC_leu_I64;
+  case ISD::SETGT:
+    return SPEX::BCC_gt_I64;
+  case ISD::SETUGT:
+    return SPEX::BCC_gtu_I64;
+  case ISD::SETGE:
+    return SPEX::BCC_ge_I64;
+  case ISD::SETUGE:
+    return SPEX::BCC_geu_I64;
+  default:
+    report_fatal_error("SPEX: unsupported BR_CC condition");
+  }
+}
+
 void SPEXDAGToDAGISel::Select(SDNode *Node) {
   if (Node->isMachineOpcode()) {
     return;
@@ -375,50 +433,28 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     SDValue CopyCh = CopyTo.getValue(0);
     SDValue CopyGlue = CopyTo.getValue(1);
 
-    unsigned LBits = LHS.getValueType().getSizeInBits();
-    bool RHSIsImm = isa<ConstantSDNode>(RHS);
-
-    auto pickCmpR = [&] {
-      switch (LBits) {
-      case 8:
-        return SPEX::CMP8_R;
-      case 16:
-        return SPEX::CMP16_R;
-      case 32:
-        return SPEX::CMP32_R;
-      case 64:
-        return SPEX::CMP64_R;
-      default:
-        llvm_unreachable("bad cmp width");
-      }
-    };
-
-    auto pickCmpI = [&](int64_t Imm) {
-      switch (LBits) {
-      case 8:
-        return SPEX::CMP8_I32;
-      case 16:
-        return SPEX::CMP16_I32;
-      case 32:
-        return SPEX::CMP32_I32;
-      case 64:
-        return isInt<32>(Imm) ? SPEX::CMP64_I32 : SPEX::CMP64_I64;
-      default:
-        llvm_unreachable("bad cmp width");
-      }
-    };
+    unsigned Bits = LHS.getValueType().getSizeInBits();
 
     unsigned CmpOpc = 0;
     SmallVector<SDValue, 6> CmpOps;
 
-    if (RHSIsImm) {
-      CmpOpc = pickCmpI(LHS.getValueType().getSizeInBits());
+    CmpOps.push_back(CopyCh);
+
+    if (auto *CN = dyn_cast<ConstantSDNode>(RHS)) {
+      int64_t Imm = CN->getSExtValue();
+
+      CmpOpc = pickCmpI(Bits, Imm);
+
+      if (isInt<32>(Imm)) {
+        CmpOps.push_back(CurDAG->getTargetConstant((int32_t)Imm, DL, MVT::i32));
+      } else {
+        CmpOps.push_back(CurDAG->getTargetConstant(Imm, DL, MVT::i64));
+      }
     } else {
-      CmpOpc = pickCmpR();
+      CmpOpc = pickCmpR(Bits);
+      CmpOps.push_back(RHS);
     }
 
-    CmpOps.push_back(CopyCh);
-    CmpOps.push_back(RHS);
     CmpOps.push_back(CopyGlue);
 
     SDNode *CmpN =
@@ -426,50 +462,14 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     SDValue CmpCh = SDValue(CmpN, 0);
     SDValue CmpGlue = SDValue(CmpN, 1);
 
-    unsigned BccOpc;
-    switch (CC) {
-    case ISD::SETEQ:
-      BccOpc = SPEX::BCC_eq_I64;
-      break;
-    case ISD::SETNE:
-      BccOpc = SPEX::BCC_ne_I64;
-      break;
-    case ISD::SETLT:
-      BccOpc = SPEX::BCC_lt_I64;
-      break;
-    case ISD::SETULT:
-      BccOpc = SPEX::BCC_ltu_I64;
-      break;
-    case ISD::SETLE:
-      BccOpc = SPEX::BCC_le_I64;
-      break;
-    case ISD::SETULE:
-      BccOpc = SPEX::BCC_leu_I64;
-      break;
-    case ISD::SETGT:
-      BccOpc = SPEX::BCC_gt_I64;
-      break;
-    case ISD::SETUGT:
-      BccOpc = SPEX::BCC_gtu_I64;
-      break;
-    case ISD::SETGE:
-      BccOpc = SPEX::BCC_ge_I64;
-      break;
-    case ISD::SETUGE:
-      BccOpc = SPEX::BCC_geu_I64;
-      break;
-    default:
-      report_fatal_error("SPEX: unsupported branch condition");
-      break;
-    }
-
     SmallVector<SDValue, 4> BrOps;
 
-    BrOps.push_back(CmpCh);
     BrOps.push_back(Dest);
+    BrOps.push_back(CmpCh);
     BrOps.push_back(CmpGlue);
 
-    SDNode *BrN = CurDAG->getMachineNode(BccOpc, DL, MVT::Other, CopyCh, Dest);
+    SDNode *BrN =
+        CurDAG->getMachineNode(getBcc(CC), DL, MVT::Other, CopyCh, Dest);
     ReplaceNode(Node, BrN);
 
     return;

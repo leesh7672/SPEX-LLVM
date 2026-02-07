@@ -407,7 +407,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       CmpOpc = pickCmpR();
     }
 
-
     CmpOps.push_back(CopyCh);
     CmpOps.push_back(RHS);
     CmpOps.push_back(CopyGlue);

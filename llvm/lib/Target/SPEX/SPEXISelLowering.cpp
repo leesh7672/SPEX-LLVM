@@ -127,10 +127,6 @@ const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
     return "SPEXISD::LWAIT";
   case SPEXISD::LWAKE:
     return "SPEXISD::LWAKE";
-  case SPEXISD::BR:
-    return "SPEXISD::BR";
-  case SPEXISD::BR_CC:
-    return "SPEXISD::BR_CC";
   default:
     return nullptr;
   }
@@ -213,10 +209,6 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     auto *FI = cast<FrameIndexSDNode>(Op.getNode());
     return DAG.getTargetFrameIndex(FI->getIndex(), MVT::i64);
   }
-  case ISD::BR:
-    return LowerBR(Op.getOperand(0), Op.getOperand(1), SDLoc(Op), DAG);
-  case ISD::BR_CC:
-    return LowerBR_CC(Op, DAG);
   case ISD::BRCOND:
     return LowerBRCOND(Op, DAG);
   case ISD::SHL:
@@ -444,20 +436,6 @@ SDValue SPEXTargetLowering::LowerShift(SDValue Op, SelectionDAG &DAG,
   return DAG.getNode(TgtOpc, DL, VT, Op.getOperand(0), Imm);
 }
 
-SDValue SPEXTargetLowering::LowerBR_CC(SDValue Op, SelectionDAG &DAG) const {
-  SDLoc DL(Op);
-
-  SDValue Chain = Op.getOperand(0);
-  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(1))->get();
-  SDValue LHS = Op.getOperand(2);
-  SDValue RHS = Op.getOperand(3);
-  SDValue Dest = Op.getOperand(4);
-
-  SDValue CCVal = DAG.getCondCode(CC);
-  return DAG.getNode(SPEXISD::BR_CC, DL, MVT::Other, Chain, LHS, RHS, CCVal,
-                     Dest);
-}
-
 SDValue SPEXTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
   SDLoc DL(Op);
   auto *N = cast<SDNode>(Op);
@@ -474,13 +452,8 @@ SDValue SPEXTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
 
   SDValue Zero = DAG.getConstant(0, DL, CondVT);
 
-  return DAG.getNode(SPEXISD::BR_CC, DL, MVT::Other, Chain, Cond, Zero,
+  return DAG.getNode(ISD::BR_CC, DL, MVT::Other, Chain, Cond, Zero,
                      DAG.getCondCode(ISD::SETNE), Dest);
-}
-
-SDValue SPEXTargetLowering::LowerBR(SDValue Chain, SDValue Dest,
-                                    const SDLoc &DL, SelectionDAG &DAG) const {
-  return DAG.getNode(SPEXISD::BR, DL, MVT::Other, Chain, Dest);
 }
 
 SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,

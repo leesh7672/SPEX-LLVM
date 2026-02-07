@@ -24,8 +24,6 @@ enum NodeType : unsigned {
   SHL_I,
   SRL_I,
   SRA_I,
-  BR,
-  BR_CC,
   LSTOP,
   LWAIT,
   LWAKE,

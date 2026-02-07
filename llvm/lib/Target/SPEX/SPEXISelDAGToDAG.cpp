@@ -405,7 +405,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
 
-  case SPEXISD::BR: {
+  case ISD::BR: {
     SDValue Chain = Node->getOperand(0);
     SDValue Dest = Node->getOperand(1); // BasicBlock
     SDValue Ops[] = {Dest, Chain};
@@ -413,8 +413,14 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     ReplaceNode(Node, Br);
     return;
   }
-  case SPEXISD::BR_CC: {
+  case ISD::BR_CC: {
     SDLoc DL(Node);
+
+    SDValue Chain = Node->getOperand(0);
+    ISD::CondCode CC = cast<CondCodeSDNode>(Node->getOperand(1))->get();
+    SDValue LHS = Node->getOperand(2);
+    SDValue RHS = Node->getOperand(3);
+    SDValue Dest = Node->getOperand(4);
 
     unsigned I = 0;
     SDValue InGlue;
@@ -422,12 +428,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
       InGlue = Node->getOperand(0);
       I = 1;
     }
-
-    SDValue Chain = Node->getOperand(I + 0);
-    SDValue LHS = Node->getOperand(I + 1);
-    SDValue RHS = Node->getOperand(I + 2);
-    auto CC = cast<CondCodeSDNode>(Node->getOperand(I + 3))->get();
-    SDValue Dest = Node->getOperand(I + 4);
 
     SDValue CopyTo = CurDAG->getCopyToReg(Chain, DL, SPEX::RX, LHS, InGlue);
     SDValue CopyCh = CopyTo.getValue(0);

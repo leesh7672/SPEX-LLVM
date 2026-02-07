@@ -459,17 +459,17 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     SDNode *CmpN =
         CurDAG->getMachineNode(CmpOpc, DL, MVT::Other, MVT::Glue, CmpOps);
-    SDValue CmpCh = SDValue(CmpN, 0);
-    SDValue CmpGlue = SDValue(CmpN, 1);
+    SDValue CmpCh(CmpN, 0);
+    SDValue CmpGlue(CmpN, 1);
 
     SmallVector<SDValue, 4> BrOps;
 
-    BrOps.push_back(Dest);
     BrOps.push_back(CmpCh);
+    BrOps.push_back(Dest);
     BrOps.push_back(CmpGlue);
 
     SDNode *BrN =
-        CurDAG->getMachineNode(getBcc(CC), DL, MVT::Other, CopyCh, Dest);
+        CurDAG->getMachineNode(getBcc(CC), DL, MVT::Other, MVT::Other, BrOps);
     ReplaceNode(Node, BrN);
 
     return;

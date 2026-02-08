@@ -54,10 +54,27 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
 
   setOperationAction(ISD::SHL, MVT::i32, Custom);
   setOperationAction(ISD::SHL, MVT::i64, Custom);
+
   setOperationAction(ISD::SRL, MVT::i32, Custom);
   setOperationAction(ISD::SRL, MVT::i64, Custom);
+
   setOperationAction(ISD::SRA, MVT::i32, Custom);
   setOperationAction(ISD::SRA, MVT::i64, Custom);
+
+  setOperationAction(ISD::AND, MVT::i8,  Legal);
+  setOperationAction(ISD::AND, MVT::i16, Legal);
+  setOperationAction(ISD::AND, MVT::i32, Legal);
+  setOperationAction(ISD::AND, MVT::i64, Legal);
+
+  setOperationAction(ISD::OR,  MVT::i8,  Legal);
+  setOperationAction(ISD::OR,  MVT::i16, Legal);
+  setOperationAction(ISD::OR,  MVT::i32, Legal);
+  setOperationAction(ISD::OR,  MVT::i64, Legal);
+
+  setOperationAction(ISD::XOR, MVT::i8,  Legal);
+  setOperationAction(ISD::XOR, MVT::i16, Legal);
+  setOperationAction(ISD::XOR, MVT::i32, Legal);
+  setOperationAction(ISD::XOR, MVT::i64, Legal);
 
   setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
 
@@ -66,10 +83,10 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SETCC, MVT::i32, Expand);
   setOperationAction(ISD::SETCC, MVT::i64, Expand);
 
-  setOperationAction(ISD::SELECT_CC, MVT::i8, Custom);
-  setOperationAction(ISD::SELECT_CC, MVT::i16, Custom);
-  setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
-  setOperationAction(ISD::SELECT_CC, MVT::i64, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i8, Expand);
+  setOperationAction(ISD::SELECT_CC, MVT::i16, Expand);
+  setOperationAction(ISD::SELECT_CC, MVT::i32, Expand);
+  setOperationAction(ISD::SELECT_CC, MVT::i64, Expand);
 
   setOperationAction(ISD::SELECT, MVT::i8, Expand);
   setOperationAction(ISD::SELECT, MVT::i16, Expand);
@@ -204,36 +221,6 @@ static SDValue emitRXMoveWithOptionalClearValue(SelectionDAG &DAG,
 SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
                                            SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
-  case ISD::SETCC: {
-    SDLoc DL(Op);
-    auto *N = cast<SDNode>(Op);
-
-    SDValue LHS = N->getOperand(0);
-    SDValue RHS = N->getOperand(1);
-    auto CC = cast<CondCodeSDNode>(N->getOperand(2))->get();
-
-    EVT ResVT = Op.getValueType();
-
-    SDValue One = DAG.getConstant(1, DL, ResVT);
-    SDValue Zero = DAG.getConstant(0, DL, ResVT);
-
-    return DAG.getSelectCC(DL, LHS, RHS, One, Zero, CC);
-  }
-  case ISD::SELECT_CC: {
-    SDLoc DL(Op);
-    auto *N = cast<SDNode>(Op);
-
-    SDValue LHS = N->getOperand(0);
-    SDValue RHS = N->getOperand(1);
-    SDValue TrueV = N->getOperand(2);
-    SDValue FalseV = N->getOperand(3);
-    auto CC = cast<CondCodeSDNode>(N->getOperand(4))->get();
-
-    EVT ResVT = Op.getValueType();
-    SDValue Cond = DAG.getSetCC(DL, MVT::i1, LHS, RHS, CC);
-
-    return DAG.getSelect(DL, ResVT, Cond, TrueV, FalseV);
-  }
   case ISD::FrameIndex: {
     // Legalize raw FrameIndex nodes into target-specific frame indices so they
     // can be used as operands and later resolved by eliminateFrameIndex.

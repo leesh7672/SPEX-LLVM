@@ -74,6 +74,7 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
                                           SmallVectorImpl<char> &CB,
                                           SmallVectorImpl<MCFixup> &Fixups,
                                           const MCSubtargetInfo &STI) const {
+  CB.clear();
   llvm::raw_svector_ostream OS(CB);
 
   uint32_t W0 = static_cast<uint32_t>(getBinaryCodeForInstr(MI, Fixups, STI));
@@ -136,7 +137,7 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
     Imm32 = static_cast<uint32_t>(Imm64);
   } else if (ImmOp->isExpr()) {
     MCFixupKind Kind = I64 ? FK_Data_8 : FK_Data_4;
-    Fixups.push_back(MCFixup::create(Base + 4, ImmOp->getExpr(), Kind));
+    Fixups.push_back(MCFixup::create(4, ImmOp->getExpr(), Kind));
   }
 
   llvm::support::endian::write<uint32_t>(OS, W0, llvm::endianness::little);

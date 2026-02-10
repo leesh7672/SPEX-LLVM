@@ -97,12 +97,12 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::SELECT, MVT::i1, Promote);
   setOperationAction(ISD::SELECT_CC, MVT::i1, Promote);
 
-  setOperationAction(ISD::XOR, MVT::i1, Expand);
-  setOperationAction(ISD::AND, MVT::i1, Expand);
-  setOperationAction(ISD::OR, MVT::i1, Expand);
-  setOperationAction(ISD::ANY_EXTEND, MVT::i1, Expand);
-  setOperationAction(ISD::ZERO_EXTEND, MVT::i1, Expand);
-  setOperationAction(ISD::SIGN_EXTEND, MVT::i1, Expand);
+  setOperationAction(ISD::XOR, MVT::i1, Promote);
+  setOperationAction(ISD::AND, MVT::i1, Promote);
+  setOperationAction(ISD::OR, MVT::i1, Promote);
+  setOperationAction(ISD::ANY_EXTEND, MVT::i1, Promote);
+  setOperationAction(ISD::ZERO_EXTEND, MVT::i1, Promote);
+  setOperationAction(ISD::SIGN_EXTEND, MVT::i1, Promote);
   setOperationAction(ISD::TRUNCATE, MVT::i1, Expand);
 
   setBooleanContents(ZeroOrOneBooleanContent);
@@ -124,9 +124,15 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setLoadExtAction(ISD::EXTLOAD, MVT::i64, MVT::i32, Legal);
   setLoadExtAction(ISD::EXTLOAD, MVT::i32, MVT::i8, Legal);
   setLoadExtAction(ISD::EXTLOAD, MVT::i32, MVT::i16, Legal);
+  setLoadExtAction(ISD::EXTLOAD, MVT::i16, MVT::i8, Legal);
+
+
   setLoadExtAction(ISD::SEXTLOAD, MVT::i64, MVT::i8, Legal);
   setLoadExtAction(ISD::SEXTLOAD, MVT::i64, MVT::i16, Legal);
   setLoadExtAction(ISD::SEXTLOAD, MVT::i64, MVT::i32, Legal);
+  setLoadExtAction(ISD::SEXTLOAD, MVT::i32, MVT::i8, Legal);
+  setLoadExtAction(ISD::SEXTLOAD, MVT::i32, MVT::i16, Legal);
+  setLoadExtAction(ISD::SEXTLOAD, MVT::i16, MVT::i8, Legal);
 
   setOperationAction(ISD::GlobalAddress, MVT::i64, Legal);
   setOperationAction(ISD::ExternalSymbol, MVT::i64, Legal);

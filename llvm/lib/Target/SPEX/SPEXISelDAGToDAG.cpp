@@ -612,60 +612,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     ReplaceNode(Node, N);
     return;
   }
-  case ISD::SETCC: {
-    SDLoc DL(Node);
-    SDValue LHS = Node->getOperand(0);
-    SDValue RHS = Node->getOperand(1);
-    auto *CCN = cast<CondCodeSDNode>(Node->getOperand(2));
-    ISD::CondCode CC = CCN->get();
-
-    unsigned CmpBits = LHS.getValueType().getSizeInBits();
-    unsigned Op = pickPseudoSETCC(CmpBits);
-
-    SDValue TCC = CurDAG->getTargetConstant((int)CC, DL, MVT::i32);
-    SDNode *Res =
-        CurDAG->getMachineNode(Op, DL, Node->getValueType(0), {LHS, RHS, TCC});
-
-    ReplaceNode(Node, Res);
-
-    return;
-  }
-  case ISD::SELECT: {
-    SDLoc DL(Node);
-    SDValue Cond = Node->getOperand(0);
-    SDValue TVal = Node->getOperand(1);
-    SDValue FVal = Node->getOperand(2);
-
-    unsigned CmpBits = Node->getValueType(0).getSizeInBits();
-    unsigned Op = pickPseudoSELECT(CmpBits);
-
-    SDNode *Res = CurDAG->getMachineNode(Op, DL, Node->getValueType(0),
-                                         {Cond, TVal, FVal});
-
-    ReplaceNode(Node, Res);
-
-    return;
-  }
-  case ISD::SELECT_CC: {
-    SDLoc DL(Node);
-    SDValue LHS = Node->getOperand(0);
-    SDValue RHS = Node->getOperand(1);
-    SDValue TVal = Node->getOperand(2);
-    SDValue FVal = Node->getOperand(3);
-    auto *CCN = cast<CondCodeSDNode>(Node->getOperand(4));
-    ISD::CondCode CC = CCN->get();
-
-    unsigned CmpBits = LHS.getValueType().getSizeInBits();
-    unsigned Op = pickPseudoSELECT_CC(CmpBits);
-
-    SDValue TCC = CurDAG->getTargetConstant((int)CC, DL, MVT::i32);
-    SDNode *Res = CurDAG->getMachineNode(Op, DL, Node->getValueType(0),
-                                         {LHS, RHS, TVal, FVal, TCC});
-
-    ReplaceNode(Node, Res);
-
-    return;
-  }
   }
 
   SelectCode(Node);

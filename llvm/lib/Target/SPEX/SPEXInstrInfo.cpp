@@ -324,6 +324,8 @@ bool SPEXInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     MI.eraseFromParent();
     return true;
   }
+  case SPEX::PSEUDO_AND16rr: {
+  }
   case SPEX::PSEUDO_ADD32ri:
   case SPEX::PSEUDO_SUB32ri:
   case SPEX::PSEUDO_AND32ri:

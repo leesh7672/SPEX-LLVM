@@ -694,6 +694,14 @@ def PSEUDO_SUB64ri : SPEXPseudoInst<(outs GPR:$dst),
   let Constraints = "$dst = $src";
 }
 
+def PSEUDO_AND8rr : SPEXPseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
+def PSEUDO_AND16rr : SPEXPseudoInst<(outs GPR:$dst),
+                                      (ins GPR:$src, GPR:$rhs)> {
+  let Constraints = "$dst = $src";
+}
 def PSEUDO_AND32rr : SPEXPseudoInst<(outs GPR:$dst),
                                       (ins GPR:$src, GPR:$rhs)> {
   let Constraints = "$dst = $src";

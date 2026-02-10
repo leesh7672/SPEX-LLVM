@@ -464,7 +464,7 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
-    
+
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();
@@ -484,7 +484,8 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
       return DAG.getNode(ISD::TRUNCATE, DL, DstVT, Src);
     }
 
-    if (!(SrcBits == 1 || SrcBits == 8 || SrcBits == 16 || SrcBits == 32 || SrcBits == 64))
+    if (!(SrcBits == 1 || SrcBits == 8 || SrcBits == 16 || SrcBits == 32 ||
+          SrcBits == 64))
       break;
     if (!(DstBits == 8 || DstBits == 16 || DstBits == 32 || DstBits == 64))
       break;
@@ -495,33 +496,42 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
       return DAG.getNode(ISD::TRUNCATE, DL, DstVT, Src);
     }
     if (DstBits == 16) {
-      SDValue Z = emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i32, Src, SrcBits, true);
+      SDValue Z = emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i32, Src,
+                                                   SrcBits, true);
       unsigned ShAmt = 32 - SrcBits;
       SDValue Imm = DAG.getTargetConstant(ShAmt, DL, MVT::i32);
 
-      SDNode *ShlN = DAG.getMachineNode(SPEX::PSEUDO_SHL32ri, DL, MVT::i32, Z, Imm);
-      SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA32ri, DL, MVT::i32, SDValue(ShlN, 0), Imm);
+      SDNode *ShlN =
+          DAG.getMachineNode(SPEX::PSEUDO_SHL32ri, DL, MVT::i32, Z, Imm);
+      SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA32ri, DL, MVT::i32,
+                                        SDValue(ShlN, 0), Imm);
 
       return DAG.getNode(ISD::TRUNCATE, DL, MVT::i16, SDValue(SraN, 0));
     }
 
     if (DstBits == 32) {
-      SDValue Z = emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i32, Src, SrcBits, true);
+      SDValue Z = emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i32, Src,
+                                                   SrcBits, true);
       unsigned ShAmt = 32 - SrcBits;
       SDValue Imm = DAG.getTargetConstant(ShAmt, DL, MVT::i32);
 
-      SDNode *ShlN = DAG.getMachineNode(SPEX::PSEUDO_SHL32ri, DL, MVT::i32, Z, Imm);
-      SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA32ri, DL, MVT::i32, SDValue(ShlN, 0), Imm);
+      SDNode *ShlN =
+          DAG.getMachineNode(SPEX::PSEUDO_SHL32ri, DL, MVT::i32, Z, Imm);
+      SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA32ri, DL, MVT::i32,
+                                        SDValue(ShlN, 0), Imm);
       return SDValue(SraN, 0);
     }
 
     // DstBits == 64
-    SDValue Z = emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i64, Src, SrcBits, true);
+    SDValue Z =
+        emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i64, Src, SrcBits, true);
     unsigned ShAmt = 64 - SrcBits;
     SDValue Imm = DAG.getTargetConstant(ShAmt, DL, MVT::i32);
 
-    SDNode *ShlN = DAG.getMachineNode(SPEX::PSEUDO_SHL64ri, DL, MVT::i64, Z, Imm);
-    SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA64ri, DL, MVT::i64, SDValue(ShlN, 0), Imm);
+    SDNode *ShlN =
+        DAG.getMachineNode(SPEX::PSEUDO_SHL64ri, DL, MVT::i64, Z, Imm);
+    SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA64ri, DL, MVT::i64,
+                                      SDValue(ShlN, 0), Imm);
     return SDValue(SraN, 0);
   }
 
@@ -993,8 +1003,6 @@ SDValue SPEXTargetLowering::lowerCallResult(
   case CCValAssign::Full:
     break;
   case CCValAssign::SExt:
-    // Caller-side canonicalization (rarely needed if callee already
-    // sign-extends, but keeps behavior consistent under optimization).
     Res = DAG.getNode(ISD::SIGN_EXTEND, DL, VA.getValVT(), Res);
     break;
   case CCValAssign::ZExt:

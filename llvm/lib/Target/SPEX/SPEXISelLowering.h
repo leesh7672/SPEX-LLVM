@@ -39,8 +39,6 @@ public:
 
   SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
 
-  MachineBasicBlock *EmitInstrWithCustomInserter(MachineInstr &MI, MachineBasicBlock *MBB) const override;
-
   SDValue LowerBR(SDValue Chain, SDValue Dest, const SDLoc &DL,
                   SelectionDAG &DAG) const;
 

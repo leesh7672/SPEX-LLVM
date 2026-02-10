@@ -74,13 +74,16 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
                                           SmallVectorImpl<char> &CB,
                                           SmallVectorImpl<MCFixup> &Fixups,
                                           const MCSubtargetInfo &STI) const {
+  llvm::raw_svector_ostream OS(CB);
+
   uint32_t W0 = static_cast<uint32_t>(getBinaryCodeForInstr(MI, Fixups, STI));
+  uint32_t Base = (uint32_t)CB.size();
 
   bool I1 = (W0 >> 16) & 1;
   bool I64 = (W0 >> 15) & 1;
 
   if (!I1) {
-    support::endian::write(CB, W0, endianness::little);
+    llvm::support::endian::write<uint32_t>(OS, W0, llvm::endianness::little);
     return;
   }
 
@@ -102,9 +105,6 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
     }
   }
 
-  // Instructions with I1=1 normally carry an immediate/expr operand.
-  // If this is missing, keep encoding with zero-fill but emit a diagnostic so
-  // the root cause can be fixed in TableGen/ISel.
   if (!ImmOp) {
     errs() << "SPEX: I1 instruction missing Imm/Expr operand: opcode="
            << MI.getOpcode() << "\n";
@@ -118,39 +118,32 @@ void SPEXMCCodeEmitter::encodeInstruction(const MCInst &MI,
              << "\n";
     }
 
-    // Emit the base word and a zero-filled extension so the stream stays
-    // well-formed, then stop.
-    support::endian::write(CB, W0, endianness::little);
+    llvm::support::endian::write<uint32_t>(OS, W0, llvm::endianness::little);
     if (I64)
-      support::endian::write(CB, uint64_t(0), endianness::little);
+      llvm::support::endian::write<uint64_t>(OS, uint64_t(0),
+                                             llvm::endianness::little);
     else
-      support::endian::write(CB, uint32_t(0), endianness::little);
+      llvm::support::endian::write<uint32_t>(OS, uint32_t(0),
+                                             llvm::endianness::little);
     return;
   }
 
   uint32_t Imm32 = 0;
   uint64_t Imm64 = 0;
-  if (ImmOp) {
-    if (ImmOp->isImm()) {
-      Imm64 = static_cast<uint64_t>(ImmOp->getImm());
-      Imm32 = static_cast<uint32_t>(Imm64);
-    } else if (ImmOp->isExpr()) {
-      // For symbolic immediates, always emit a relocation so the linker can
-      // resolve it (e.g. `call rmain`, `jmp .Lbb`, `bcc-eq label`).
-      //
-      // IMPORTANT: In SPEX, opcode is independent of operand size; the actual
-      // extension size is determined by the encoding bits (I1/I64) in W0.
-      // Therefore, choose 32- vs 64-bit relocation based on W0's I64 bit.
-      MCFixupKind Kind = I64 ? FK_Data_8 : FK_Data_4;
-      Fixups.push_back(MCFixup::create(/*Offset=*/4, ImmOp->getExpr(), Kind));
-    }
+
+  if (ImmOp->isImm()) {
+    Imm64 = static_cast<uint64_t>(ImmOp->getImm());
+    Imm32 = static_cast<uint32_t>(Imm64);
+  } else if (ImmOp->isExpr()) {
+    MCFixupKind Kind = I64 ? FK_Data_8 : FK_Data_4;
+    Fixups.push_back(MCFixup::create(Base + 4, ImmOp->getExpr(), Kind));
   }
 
-  support::endian::write(CB, W0, endianness::little);
+  llvm::support::endian::write<uint32_t>(OS, W0, llvm::endianness::little);
   if (I64) {
-    support::endian::write(CB, Imm64, endianness::little);
-  } else if (I1) {
-    support::endian::write(CB, Imm32, endianness::little);
+    llvm::support::endian::write<uint64_t>(OS, Imm64, llvm::endianness::little);
+  } else {
+    llvm::support::endian::write<uint32_t>(OS, Imm32, llvm::endianness::little);
   }
 }
 

@@ -126,7 +126,6 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setLoadExtAction(ISD::EXTLOAD, MVT::i32, MVT::i16, Legal);
   setLoadExtAction(ISD::EXTLOAD, MVT::i16, MVT::i8, Legal);
 
-
   setLoadExtAction(ISD::SEXTLOAD, MVT::i64, MVT::i8, Legal);
   setLoadExtAction(ISD::SEXTLOAD, MVT::i64, MVT::i16, Legal);
   setLoadExtAction(ISD::SEXTLOAD, MVT::i64, MVT::i32, Legal);
@@ -411,15 +410,10 @@ const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
   }
 }
 
-
-static SDValue emitRXMoveWithOptionalClearValue(
-    SelectionDAG &DAG,
-    const SDLoc &DL,
-    EVT DstVT,
-    SDValue Src,
-    unsigned SrcBits,
-    bool ClearHighBitsWithZero)
-{
+static SDValue emitRXMoveWithOptionalClearValue(SelectionDAG &DAG,
+                                                const SDLoc &DL, EVT DstVT,
+                                                SDValue Src, unsigned SrcBits,
+                                                bool ClearHighBitsWithZero) {
   // ---- choose mov opcode ----
   unsigned MovOpc = 0;
   switch (SrcBits) {
@@ -448,8 +442,7 @@ static SDValue emitRXMoveWithOptionalClearValue(
 
   // ---- read RX value ----
   SDValue Chain = DAG.getEntryNode();
-  SDValue Val =
-      DAG.getCopyFromReg(Chain, DL, SPEX::RX, DstVT, Glue);
+  SDValue Val = DAG.getCopyFromReg(Chain, DL, SPEX::RX, DstVT, Glue);
 
   return Val;
 }
@@ -731,10 +724,14 @@ SDValue SPEXTargetLowering::LowerSETCC(SDValue Op, SelectionDAG &DAG) const {
   SDValue CCImm = DAG.getConstant((int)CC, DL, MVT::i32);
 
   unsigned Opc = 0;
-  if (VT == MVT::i8)      Opc = SPEX::PSEUDO_SETCC8;
-  else if (VT == MVT::i16) Opc = SPEX::PSEUDO_SETCC16;
-  else if (VT == MVT::i32) Opc = SPEX::PSEUDO_SETCC32;
-  else if (VT == MVT::i64) Opc = SPEX::PSEUDO_SETCC64;
+  if (VT == MVT::i8)
+    Opc = SPEX::PSEUDO_SETCC8;
+  else if (VT == MVT::i16)
+    Opc = SPEX::PSEUDO_SETCC16;
+  else if (VT == MVT::i32)
+    Opc = SPEX::PSEUDO_SETCC32;
+  else if (VT == MVT::i64)
+    Opc = SPEX::PSEUDO_SETCC64;
   else
     return SDValue(); // Unexpected type
 
@@ -750,36 +747,46 @@ SDValue SPEXTargetLowering::LowerSELECT(SDValue Op, SelectionDAG &DAG) const {
   SDValue FVal = Op.getOperand(2);
 
   unsigned Opc = 0;
-  if (VT == MVT::i8)      Opc = SPEX::PSEUDO_SELECT8;
-  else if (VT == MVT::i16) Opc = SPEX::PSEUDO_SELECT16;
-  else if (VT == MVT::i32) Opc = SPEX::PSEUDO_SELECT32;
-  else if (VT == MVT::i64) Opc = SPEX::PSEUDO_SELECT64;
+  if (VT == MVT::i8)
+    Opc = SPEX::PSEUDO_SELECT8;
+  else if (VT == MVT::i16)
+    Opc = SPEX::PSEUDO_SELECT16;
+  else if (VT == MVT::i32)
+    Opc = SPEX::PSEUDO_SELECT32;
+  else if (VT == MVT::i64)
+    Opc = SPEX::PSEUDO_SELECT64;
   else
     return SDValue();
 
   return SDValue(DAG.getMachineNode(Opc, DL, VT, {Cond, TVal, FVal}), 0);
 }
 
-SDValue SPEXTargetLowering::LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const {
+SDValue SPEXTargetLowering::LowerSELECT_CC(SDValue Op,
+                                           SelectionDAG &DAG) const {
   SDLoc DL(Op);
   EVT VT = Op.getValueType();
 
-  SDValue LHS  = Op.getOperand(0);
-  SDValue RHS  = Op.getOperand(1);
+  SDValue LHS = Op.getOperand(0);
+  SDValue RHS = Op.getOperand(1);
   SDValue TVal = Op.getOperand(2);
   SDValue FVal = Op.getOperand(3);
   ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
   SDValue CCImm = DAG.getConstant((int)CC, DL, MVT::i32);
 
   unsigned Opc = 0;
-  if (VT == MVT::i8)      Opc = SPEX::PSEUDO_SELECT_CC8;
-  else if (VT == MVT::i16) Opc = SPEX::PSEUDO_SELECT_CC16;
-  else if (VT == MVT::i32) Opc = SPEX::PSEUDO_SELECT_CC32;
-  else if (VT == MVT::i64) Opc = SPEX::PSEUDO_SELECT_CC64;
+  if (VT == MVT::i8)
+    Opc = SPEX::PSEUDO_SELECT_CC8;
+  else if (VT == MVT::i16)
+    Opc = SPEX::PSEUDO_SELECT_CC16;
+  else if (VT == MVT::i32)
+    Opc = SPEX::PSEUDO_SELECT_CC32;
+  else if (VT == MVT::i64)
+    Opc = SPEX::PSEUDO_SELECT_CC64;
   else
     return SDValue();
 
-  return SDValue(DAG.getMachineNode(Opc, DL, VT, {LHS, RHS, TVal, FVal, CCImm}), 0);
+  return SDValue(DAG.getMachineNode(Opc, DL, VT, {LHS, RHS, TVal, FVal, CCImm}),
+                 0);
 }
 
 SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,

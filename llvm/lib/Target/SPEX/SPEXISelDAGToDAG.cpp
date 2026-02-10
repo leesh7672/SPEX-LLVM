@@ -122,63 +122,63 @@ bool SPEXDAGToDAGISel::SelectAddrRR(SDValue Addr, SDValue &Base,
   return false;
 }
 
-static unsigned pickMovR(unsigned Bits){
+static unsigned pickMovR(unsigned Bits) {
   switch (Bits) {
-    case 8:
-      return SPEX::MOVMOV8_R;
-    case 16:
-      return SPEX::MOVMOV16_R;
-    case 32:
-      return SPEX::MOVMOV32_R;
-    case 64:
-      return SPEX::MOVMOV64_R;
-    default:
-      llvm_unreachable("bad mov width");
+  case 8:
+    return SPEX::MOVMOV8_R;
+  case 16:
+    return SPEX::MOVMOV16_R;
+  case 32:
+    return SPEX::MOVMOV32_R;
+  case 64:
+    return SPEX::MOVMOV64_R;
+  default:
+    llvm_unreachable("bad mov width");
   }
 }
 
-static unsigned pickPseudoSETCC(unsigned Bits){
+static unsigned pickPseudoSETCC(unsigned Bits) {
   switch (Bits) {
-    case 8:
-      return SPEX::PSEUDO_SETCC8;
-    case 16:
-      return SPEX::PSEUDO_SETCC16;
-    case 32:
-      return SPEX::PSEUDO_SETCC32;
-    case 64:
-      return SPEX::PSEUDO_SETCC64;
-    default:
-      llvm_unreachable("bad SETCC width");
+  case 8:
+    return SPEX::PSEUDO_SETCC8;
+  case 16:
+    return SPEX::PSEUDO_SETCC16;
+  case 32:
+    return SPEX::PSEUDO_SETCC32;
+  case 64:
+    return SPEX::PSEUDO_SETCC64;
+  default:
+    llvm_unreachable("bad SETCC width");
   }
 }
 
-static unsigned pickPseudoSELECT(unsigned Bits){
+static unsigned pickPseudoSELECT(unsigned Bits) {
   switch (Bits) {
-    case 8:
-      return SPEX::PSEUDO_SELECT8;
-    case 16:
-      return SPEX::PSEUDO_SELECT16;
-    case 32:
-      return SPEX::PSEUDO_SELECT32;
-    case 64:
-      return SPEX::PSEUDO_SELECT64;
-    default:
-      llvm_unreachable("bad SELECT width");
+  case 8:
+    return SPEX::PSEUDO_SELECT8;
+  case 16:
+    return SPEX::PSEUDO_SELECT16;
+  case 32:
+    return SPEX::PSEUDO_SELECT32;
+  case 64:
+    return SPEX::PSEUDO_SELECT64;
+  default:
+    llvm_unreachable("bad SELECT width");
   }
 }
 
-static unsigned pickPseudoSELECT_CC(unsigned Bits){
+static unsigned pickPseudoSELECT_CC(unsigned Bits) {
   switch (Bits) {
-    case 8:
-      return SPEX::PSEUDO_SELECT_CC8;
-    case 16:
-      return SPEX::PSEUDO_SELECT_CC16;
-    case 32:
-      return SPEX::PSEUDO_SELECT_CC32;
-    case 64:
-      return SPEX::PSEUDO_SELECT_CC64;
-    default:
-      llvm_unreachable("bad SELECT_CC width");
+  case 8:
+    return SPEX::PSEUDO_SELECT_CC8;
+  case 16:
+    return SPEX::PSEUDO_SELECT_CC16;
+  case 32:
+    return SPEX::PSEUDO_SELECT_CC32;
+  case 64:
+    return SPEX::PSEUDO_SELECT_CC64;
+  default:
+    llvm_unreachable("bad SELECT_CC width");
   }
 }
 
@@ -612,8 +612,7 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     ReplaceNode(Node, N);
     return;
   }
-  case ISD::SETCC:
-  {
+  case ISD::SETCC: {
     SDLoc DL(Node);
     SDValue LHS = Node->getOperand(0);
     SDValue RHS = Node->getOperand(1);
@@ -624,7 +623,8 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     unsigned Op = pickPseudoSETCC(CmpBits);
 
     SDValue TCC = CurDAG->getTargetConstant((int)CC, DL, MVT::i32);
-    SDNode *Res = CurDAG->getMachineNode(Op, DL, Node->getValueType(0), {LHS, RHS, TCC});
+    SDNode *Res =
+        CurDAG->getMachineNode(Op, DL, Node->getValueType(0), {LHS, RHS, TCC});
 
     ReplaceNode(Node, Res);
 
@@ -639,7 +639,8 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     unsigned CmpBits = Node->getValueType(0).getSizeInBits();
     unsigned Op = pickPseudoSELECT(CmpBits);
 
-    SDNode *Res = CurDAG->getMachineNode(Op, DL, Node->getValueType(0), {Cond, TVal, FVal});
+    SDNode *Res = CurDAG->getMachineNode(Op, DL, Node->getValueType(0),
+                                         {Cond, TVal, FVal});
 
     ReplaceNode(Node, Res);
 
@@ -658,7 +659,8 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
     unsigned Op = pickPseudoSELECT_CC(CmpBits);
 
     SDValue TCC = CurDAG->getTargetConstant((int)CC, DL, MVT::i32);
-    SDNode *Res = CurDAG->getMachineNode(Op, DL, Node->getValueType(0), {LHS, RHS, TVal, FVal, TCC});
+    SDNode *Res = CurDAG->getMachineNode(Op, DL, Node->getValueType(0),
+                                         {LHS, RHS, TVal, FVal, TCC});
 
     ReplaceNode(Node, Res);
 

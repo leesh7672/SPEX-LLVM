@@ -37,6 +37,10 @@ public:
   explicit SPEXTargetLowering(const SPEXTargetMachine &TM,
                               const SPEXSubtarget &ST);
 
+
+  MachineBasicBlock *EmitInstrWithCustomInserter(MachineInstr &MI,
+      MachineBasicBlock *MBB) const override;
+
   SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
 
   SDValue LowerBR(SDValue Chain, SDValue Dest, const SDLoc &DL,
@@ -55,6 +59,12 @@ public:
   SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
 
   SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) const;
+
+  SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) const;
+
+  SDValue LowerSELECT(SDValue Op, SelectionDAG &DAG) const;
+
+  SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
 
   SDValue LowerShift(SDValue Op, SelectionDAG &DAG, unsigned TgtOpc) const;
 

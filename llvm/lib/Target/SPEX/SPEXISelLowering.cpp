@@ -133,6 +133,246 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::ConstantPool, MVT::i64, Legal);
 }
 
+static unsigned getMovToRXOpc(EVT VT) {
+  if (VT == MVT::i8)
+    return SPEX::MOVMOV8_R;
+  if (VT == MVT::i16)
+    return SPEX::MOVMOV16_R;
+  if (VT == MVT::i32)
+    return SPEX::MOVMOV32_R;
+  return SPEX::MOVMOV64_R;
+}
+
+static unsigned getMovFromRXOpc(EVT VT) {
+  if (VT == MVT::i8)
+    return SPEX::MOVMOV8;
+  if (VT == MVT::i16)
+    return SPEX::MOVMOV16;
+  if (VT == MVT::i32)
+    return SPEX::MOVMOV32;
+  return SPEX::MOVMOV64;
+}
+
+static unsigned getCmpOpc(EVT VT) {
+  if (VT == MVT::i8)
+    return SPEX::CMP8_R;
+  if (VT == MVT::i16)
+    return SPEX::CMP16_R;
+  if (VT == MVT::i32)
+    return SPEX::CMP32_R;
+  return SPEX::CMP64_R;
+}
+
+static unsigned getPseudoLIOpc(EVT VT) {
+  if (VT == MVT::i8)
+    return SPEX::PSEUDO_LI8;
+  if (VT == MVT::i16)
+    return SPEX::PSEUDO_LI16;
+  if (VT == MVT::i32)
+    return SPEX::PSEUDO_LI32;
+  return SPEX::PSEUDO_LI64;
+}
+
+static unsigned getBccOpc64(ISD::CondCode CC) {
+  switch (CC) {
+  case ISD::SETEQ:
+    return SPEX::BCC_eq_I64;
+  case ISD::SETNE:
+    return SPEX::BCC_ne_I64;
+
+  case ISD::SETLT:
+    return SPEX::BCC_lt_I64;
+  case ISD::SETLE:
+    return SPEX::BCC_le_I64;
+  case ISD::SETGT:
+    return SPEX::BCC_gt_I64;
+  case ISD::SETGE:
+    return SPEX::BCC_ge_I64;
+
+  case ISD::SETULT:
+    return SPEX::BCC_ltu_I64;
+  case ISD::SETULE:
+    return SPEX::BCC_leu_I64;
+  case ISD::SETUGT:
+    return SPEX::BCC_leu_I64;
+  case ISD::SETUGE:
+    return SPEX::BCC_geu_I64;
+
+  default:
+    return SPEX::BCC_ne_I64; // Conservative fallback
+  }
+}
+
+static void emitCopyViaRX(MachineBasicBlock &MBB,
+                          MachineBasicBlock::iterator InsertPt,
+                          const DebugLoc &DL, const TargetInstrInfo &TII,
+                          EVT VT, Register Dst, Register Src) {
+  BuildMI(MBB, InsertPt, DL, TII.get(getMovToRXOpc(VT))).addReg(Src);
+  BuildMI(MBB, InsertPt, DL, TII.get(getMovFromRXOpc(VT)), Dst);
+}
+
+MachineBasicBlock *
+SPEXTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
+                                                MachineBasicBlock *MBB) const {
+
+  const DebugLoc &DL = MI.getDebugLoc();
+  MachineFunction *MF = MBB->getParent();
+  const TargetInstrInfo &TII = *ST.getInstrInfo();
+
+  auto makeBlockAfter = [&](MachineBasicBlock *Before) -> MachineBasicBlock * {
+    MachineBasicBlock *NewMBB =
+        MF->CreateMachineBasicBlock(Before->getBasicBlock());
+    MF->insert(std::next(Before->getIterator()), NewMBB);
+    return NewMBB;
+  };
+
+  auto splitTail = [&]() -> MachineBasicBlock * {
+    return MBB->splitAt(MI, true);
+  };
+
+  auto addSucc = [&](MachineBasicBlock *From, MachineBasicBlock *To) {
+    if (!From->isSuccessor(To))
+      From->addSuccessor(To);
+  };
+
+  switch (MI.getOpcode()) {
+  case SPEX::PSEUDO_SETCC8:
+  case SPEX::PSEUDO_SETCC16:
+  case SPEX::PSEUDO_SETCC32:
+  case SPEX::PSEUDO_SETCC64: {
+    EVT VT = (MI.getOpcode() == SPEX::PSEUDO_SETCC8)    ? MVT::i8
+             : (MI.getOpcode() == SPEX::PSEUDO_SETCC16) ? MVT::i16
+             : (MI.getOpcode() == SPEX::PSEUDO_SETCC32) ? MVT::i32
+                                                        : MVT::i64;
+
+    Register Dst = MI.getOperand(0).getReg();
+    Register LHS = MI.getOperand(1).getReg();
+    Register RHS = MI.getOperand(2).getReg();
+    ISD::CondCode CC = (ISD::CondCode)MI.getOperand(3).getImm();
+
+    MachineBasicBlock *TailMBB = splitTail();
+    MachineBasicBlock *SetMBB = makeBlockAfter(MBB);
+
+    addSucc(MBB, SetMBB);
+    addSucc(MBB, TailMBB);
+    addSucc(SetMBB, TailMBB);
+
+    auto InsertPt = MBB->end();
+
+    // dst = 0
+    BuildMI(*MBB, InsertPt, DL, TII.get(getPseudoLIOpc(VT)), Dst).addImm(0);
+
+    // Compare: RX <- LHS; CMP rhs
+    BuildMI(*MBB, InsertPt, DL, TII.get(getMovToRXOpc(VT))).addReg(LHS);
+    BuildMI(*MBB, InsertPt, DL, TII.get(getCmpOpc(VT))).addReg(RHS);
+
+    // if (CC) goto SetMBB
+    BuildMI(*MBB, InsertPt, DL, TII.get(getBccOpc64(CC))).addMBB(SetMBB);
+
+    // goto Tail
+    BuildMI(*MBB, InsertPt, DL, TII.get(SPEX::JMP)).addMBB(TailMBB);
+
+    // SetMBB: dst = 1; goto Tail
+    auto SetIP = SetMBB->end();
+    BuildMI(*SetMBB, SetIP, DL, TII.get(getPseudoLIOpc(VT)), Dst).addImm(1);
+    BuildMI(*SetMBB, SetIP, DL, TII.get(SPEX::JMP)).addMBB(TailMBB);
+
+    MI.eraseFromParent();
+    return TailMBB;
+  }
+  case SPEX::PSEUDO_SELECT8:
+  case SPEX::PSEUDO_SELECT16:
+  case SPEX::PSEUDO_SELECT32:
+  case SPEX::PSEUDO_SELECT64: {
+    EVT VT = (MI.getOpcode() == SPEX::PSEUDO_SELECT8)    ? MVT::i8
+             : (MI.getOpcode() == SPEX::PSEUDO_SELECT16) ? MVT::i16
+             : (MI.getOpcode() == SPEX::PSEUDO_SELECT32) ? MVT::i32
+                                                         : MVT::i64;
+
+    Register Dst = MI.getOperand(0).getReg();
+    Register Cond = MI.getOperand(1).getReg();
+    Register TVal = MI.getOperand(2).getReg();
+    Register FVal = MI.getOperand(3).getReg();
+
+    MachineBasicBlock *TailMBB = splitTail();
+    MachineBasicBlock *TrueMBB = makeBlockAfter(MBB);
+
+    addSucc(MBB, TrueMBB);
+    addSucc(MBB, TailMBB);
+    addSucc(TrueMBB, TailMBB);
+
+    auto InsertPt = MBB->end();
+
+    // Use Dst as temporary zero for (Cond != 0) compare
+    BuildMI(*MBB, InsertPt, DL, TII.get(getPseudoLIOpc(VT)), Dst).addImm(0);
+    BuildMI(*MBB, InsertPt, DL, TII.get(getMovToRXOpc(VT))).addReg(Cond);
+    BuildMI(*MBB, InsertPt, DL, TII.get(getCmpOpc(VT))).addReg(Dst);
+
+    // If Cond != 0 -> TrueMBB
+    BuildMI(*MBB, InsertPt, DL, TII.get(SPEX::BCC_ne_I64)).addMBB(TrueMBB);
+
+    // False path: dst = fval; goto Tail
+    emitCopyViaRX(*MBB, InsertPt, DL, TII, VT, Dst, FVal);
+    BuildMI(*MBB, InsertPt, DL, TII.get(SPEX::JMP)).addMBB(TailMBB);
+
+    // TrueMBB: dst = tval; goto Tail
+    auto TrueIP = TrueMBB->end();
+    emitCopyViaRX(*TrueMBB, TrueIP, DL, TII, VT, Dst, TVal);
+    BuildMI(*TrueMBB, TrueIP, DL, TII.get(SPEX::JMP)).addMBB(TailMBB);
+
+    MI.eraseFromParent();
+    return TailMBB;
+  }
+  // dst = (lhs CC rhs) ? tval : fval
+  case SPEX::PSEUDO_SELECT_CC8:
+  case SPEX::PSEUDO_SELECT_CC16:
+  case SPEX::PSEUDO_SELECT_CC32:
+  case SPEX::PSEUDO_SELECT_CC64: {
+    EVT VT = (MI.getOpcode() == SPEX::PSEUDO_SELECT_CC8)    ? MVT::i8
+             : (MI.getOpcode() == SPEX::PSEUDO_SELECT_CC16) ? MVT::i16
+             : (MI.getOpcode() == SPEX::PSEUDO_SELECT_CC32) ? MVT::i32
+                                                            : MVT::i64;
+
+    Register Dst = MI.getOperand(0).getReg();
+    Register LHS = MI.getOperand(1).getReg();
+    Register RHS = MI.getOperand(2).getReg();
+    Register TVal = MI.getOperand(3).getReg();
+    Register FVal = MI.getOperand(4).getReg();
+    ISD::CondCode CC = (ISD::CondCode)MI.getOperand(5).getImm();
+
+    MachineBasicBlock *TailMBB = splitTail();
+    MachineBasicBlock *TrueMBB = makeBlockAfter(MBB);
+
+    addSucc(MBB, TrueMBB);
+    addSucc(MBB, TailMBB);
+    addSucc(TrueMBB, TailMBB);
+
+    auto InsertPt = MBB->end();
+
+    // Compare: RX <- LHS; CMP rhs
+    BuildMI(*MBB, InsertPt, DL, TII.get(getMovToRXOpc(VT))).addReg(LHS);
+    BuildMI(*MBB, InsertPt, DL, TII.get(getCmpOpc(VT))).addReg(RHS);
+
+    // If (CC) -> TrueMBB
+    BuildMI(*MBB, InsertPt, DL, TII.get(getBccOpc64(CC))).addMBB(TrueMBB);
+
+    // False path: dst = fval; goto Tail
+    emitCopyViaRX(*MBB, InsertPt, DL, TII, VT, Dst, FVal);
+    BuildMI(*MBB, InsertPt, DL, TII.get(SPEX::JMP)).addMBB(TailMBB);
+
+    // TrueMBB: dst = tval; goto Tail
+    auto TrueIP = TrueMBB->end();
+    emitCopyViaRX(*TrueMBB, TrueIP, DL, TII, VT, Dst, TVal);
+    BuildMI(*TrueMBB, TrueIP, DL, TII.get(SPEX::JMP)).addMBB(TailMBB);
+
+    MI.eraseFromParent();
+    return TailMBB;
+  }
+  default:
+    return MBB;
+  }
+}
+
 SPEXTargetLowering::LegalizeKind
 SPEXTargetLowering::getTypeConversion(LLVMContext &ctx, EVT VT) {
   if (VT == MVT::i1) {
@@ -477,6 +717,67 @@ SDValue SPEXTargetLowering::LowerBRCOND(SDValue Op, SelectionDAG &DAG) const {
 
   return DAG.getNode(ISD::BR_CC, DL, MVT::Other, Chain,
                      DAG.getCondCode(ISD::SETNE), Cond, Zero, Dest);
+}
+
+SDValue SPEXTargetLowering::LowerSETCC(SDValue Op, SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType();
+
+  SDValue LHS = Op.getOperand(0);
+  SDValue RHS = Op.getOperand(1);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(2))->get();
+  SDValue CCImm = DAG.getConstant((int)CC, DL, MVT::i32);
+
+  unsigned Opc = 0;
+  if (VT == MVT::i8)      Opc = SPEX::PSEUDO_SETCC8;
+  else if (VT == MVT::i16) Opc = SPEX::PSEUDO_SETCC16;
+  else if (VT == MVT::i32) Opc = SPEX::PSEUDO_SETCC32;
+  else if (VT == MVT::i64) Opc = SPEX::PSEUDO_SETCC64;
+  else
+    return SDValue(); // Unexpected type
+
+  return SDValue(DAG.getMachineNode(Opc, DL, VT, {LHS, RHS, CCImm}), 0);
+}
+
+SDValue SPEXTargetLowering::LowerSELECT(SDValue Op, SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType();
+
+  SDValue Cond = Op.getOperand(0);
+  SDValue TVal = Op.getOperand(1);
+  SDValue FVal = Op.getOperand(2);
+
+  unsigned Opc = 0;
+  if (VT == MVT::i8)      Opc = SPEX::PSEUDO_SELECT8;
+  else if (VT == MVT::i16) Opc = SPEX::PSEUDO_SELECT16;
+  else if (VT == MVT::i32) Opc = SPEX::PSEUDO_SELECT32;
+  else if (VT == MVT::i64) Opc = SPEX::PSEUDO_SELECT64;
+  else
+    return SDValue();
+
+  return SDValue(DAG.getMachineNode(Opc, DL, VT, {Cond, TVal, FVal}), 0);
+}
+
+SDValue SPEXTargetLowering::LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType();
+
+  SDValue LHS  = Op.getOperand(0);
+  SDValue RHS  = Op.getOperand(1);
+  SDValue TVal = Op.getOperand(2);
+  SDValue FVal = Op.getOperand(3);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
+  SDValue CCImm = DAG.getConstant((int)CC, DL, MVT::i32);
+
+  unsigned Opc = 0;
+  if (VT == MVT::i8)      Opc = SPEX::PSEUDO_SELECT_CC8;
+  else if (VT == MVT::i16) Opc = SPEX::PSEUDO_SELECT_CC16;
+  else if (VT == MVT::i32) Opc = SPEX::PSEUDO_SELECT_CC32;
+  else if (VT == MVT::i64) Opc = SPEX::PSEUDO_SELECT_CC64;
+  else
+    return SDValue();
+
+  return SDValue(DAG.getMachineNode(Opc, DL, VT, {LHS, RHS, TVal, FVal, CCImm}), 0);
 }
 
 SDValue SPEXTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,

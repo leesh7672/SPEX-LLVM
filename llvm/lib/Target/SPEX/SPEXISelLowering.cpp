@@ -561,6 +561,12 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return emitRXMoveWithOptionalClearValue(DAG, DL, DstVT, Src, SrcBits,
                                             false);
   }
+  case ISD::SETCC:
+    return LowerSETCC(Op, DAG);
+  case ISD::SELECT:
+    return LowerSELECT(Op, DAG);
+  case ISD::SELECT_CC:
+    return LowerSELECT_CC(Op, DAG);
   default:
     break;
   }

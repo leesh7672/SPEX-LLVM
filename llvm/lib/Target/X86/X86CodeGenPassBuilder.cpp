@@ -108,8 +108,7 @@ Error X86CodeGenPassBuilder::addInstSelector(PassManagerWrapper &PMW) const {
     addMachineFunctionPass(X86CleanupLocalDynamicTLSPass(), PMW);
   }
 
-  // TODO(boomanaiden154): Add X86GlobalPassRegPass here once it has been
-  // ported.
+  addMachineFunctionPass(X86GlobalBaseRegPass(), PMW);
   addMachineFunctionPass(X86ArgumentStackSlotPass(), PMW);
   return Error::success();
 }
@@ -173,8 +172,7 @@ void X86CodeGenPassBuilder::addPreEmitPass(PassManagerWrapper &PMW) const {
     addMachineFunctionPass(BreakFalseDepsPass(), PMW);
   }
 
-  // TODO(boomanaiden154): Add X86IndirectBranchTrackingPass here once it has
-  // been ported.
+  addMachineFunctionPass(X86IndirectBranchTrackingPass(), PMW);
   // TODO(boomanaiden154): Add X86IssueVZeroUpperPass here once it has been
   // ported.
 

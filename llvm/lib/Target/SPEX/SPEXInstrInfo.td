@@ -7,6 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 include "SPEXRegisterInfo.td"
+include "SPEXInstBase.td"
+include "SPEXInst.td"
 
 // -------------------------------------------------- //
 // Instruction Operands and Patterns

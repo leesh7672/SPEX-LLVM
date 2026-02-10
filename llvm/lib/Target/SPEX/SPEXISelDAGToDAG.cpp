@@ -531,46 +531,6 @@ void SPEXDAGToDAGISel::Select(SDNode *Node) {
 
     return;
   }
-  case ISD::SIGN_EXTEND_INREG: {
-    SDLoc DL(Node);
-
-    EVT OutVT = Node->getValueType(0);
-    EVT InVT = cast<VTSDNode>(Node->getOperand(1))->getVT();
-
-    if (!OutVT.isSimple() || !InVT.isSimple() || !OutVT.isInteger() ||
-        !InVT.isInteger())
-      break;
-
-    unsigned OutBits = OutVT.getSimpleVT().getSizeInBits();
-    unsigned InBits = InVT.getSimpleVT().getSizeInBits();
-    if (InBits >= OutBits)
-      break;
-
-    unsigned ShAmt = OutBits - InBits;
-
-    SDValue Src = Node->getOperand(0);
-    SDValue Imm = CurDAG->getTargetConstant(ShAmt, DL, MVT::i32);
-
-    unsigned MovToRX = (OutBits == 32) ? SPEX::MOVMOV32 : SPEX::MOVMOV64;
-    unsigned MovFromRX = (OutBits == 32) ? SPEX::MOVMOV32_R : SPEX::MOVMOV64_R;
-    unsigned ShlOpc = (OutBits == 32) ? SPEX::SHL32 : SPEX::SHL64;
-    unsigned SraOpc = (OutBits == 32) ? SPEX::SAR32 : SPEX::SAR64;
-
-    SDNode *MovN = CurDAG->getMachineNode(MovToRX, DL, MVT::Glue, Src);
-    SDValue Glue(MovN, 0);
-
-    SDNode *ShlN = CurDAG->getMachineNode(ShlOpc, DL, MVT::Glue, Imm, Glue);
-    Glue = SDValue(ShlN, 0);
-
-    SDNode *SraN = CurDAG->getMachineNode(SraOpc, DL, MVT::Glue, Imm, Glue);
-    Glue = SDValue(SraN, 0);
-
-    SDNode *OutN =
-        CurDAG->getMachineNode(MovFromRX, DL, OutVT.getSimpleVT(), Glue);
-
-    ReplaceNode(Node, OutN);
-    return;
-  }
   case SPEXISD::RET: {
     SDLoc DL(Node);
 

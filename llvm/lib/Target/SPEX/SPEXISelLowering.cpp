@@ -38,8 +38,8 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::ZERO_EXTEND, MVT::i32, Custom);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i64, Custom);
 
-  setOperationAction(ISD::SIGN_EXTEND, MVT::i8, Expand);
-  setOperationAction(ISD::SIGN_EXTEND, MVT::i16, Expand);
+  setOperationAction(ISD::SIGN_EXTEND, MVT::i8, Custom);
+  setOperationAction(ISD::SIGN_EXTEND, MVT::i16, Custom);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i32, Custom);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i64, Custom);
 
@@ -103,7 +103,7 @@ SPEXTargetLowering::SPEXTargetLowering(const SPEXTargetMachine &TM,
   setOperationAction(ISD::ANY_EXTEND, MVT::i1, Promote);
   setOperationAction(ISD::ZERO_EXTEND, MVT::i1, Promote);
   setOperationAction(ISD::SIGN_EXTEND, MVT::i1, Promote);
-  setOperationAction(ISD::TRUNCATE, MVT::i1, Expand);
+  setOperationAction(ISD::TRUNCATE, MVT::i1, Promote);
 
   setBooleanContents(ZeroOrOneBooleanContent);
 
@@ -464,25 +464,65 @@ SDValue SPEXTargetLowering::LowerOperation(SDValue Op,
     return LowerShift(Op, DAG, SPEXISD::SRL_I);
   case ISD::SRA:
     return LowerShift(Op, DAG, SPEXISD::SRA_I);
+    
   case ISD::SIGN_EXTEND: {
     SDValue Src = Op.getOperand(0);
     EVT DstVT = Op.getValueType();
     EVT SrcVT = Src.getValueType();
 
-    if (!(DstVT == MVT::i32 || DstVT == MVT::i64))
+    if (!DstVT.isSimple() || !SrcVT.isSimple())
       break;
-    unsigned DstBits = DstVT.getSizeInBits();
-    unsigned SrcBits = SrcVT.getSizeInBits();
 
-    if (!(SrcBits == 8 || SrcBits == 16 || SrcBits == 32) || SrcBits >= DstBits)
+    unsigned SrcBits = SrcVT.getSizeInBits();
+    unsigned DstBits = DstVT.getSizeInBits();
+
+    if (SrcBits == DstBits)
+      return Src;
+
+    if (SrcBits > DstBits) {
+      SDLoc DL(Op);
+      return DAG.getNode(ISD::TRUNCATE, DL, DstVT, Src);
+    }
+
+    if (!(SrcBits == 1 || SrcBits == 8 || SrcBits == 16 || SrcBits == 32 || SrcBits == 64))
+      break;
+    if (!(DstBits == 8 || DstBits == 16 || DstBits == 32 || DstBits == 64))
       break;
 
     SDLoc DL(Op);
 
-    SDValue Wide = DAG.getNode(ISD::ZERO_EXTEND, DL, DstVT, Src);
+    if (DstBits == 8) {
+      return DAG.getNode(ISD::TRUNCATE, DL, DstVT, Src);
+    }
+    if (DstBits == 16) {
+      SDValue Z = emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i32, Src, SrcBits, true);
+      unsigned ShAmt = 32 - SrcBits;
+      SDValue Imm = DAG.getTargetConstant(ShAmt, DL, MVT::i32);
 
-    SDValue InVT = DAG.getValueType(SrcVT);
-    return DAG.getNode(ISD::SIGN_EXTEND_INREG, DL, DstVT, Wide, InVT);
+      SDNode *ShlN = DAG.getMachineNode(SPEX::PSEUDO_SHL32ri, DL, MVT::i32, Z, Imm);
+      SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA32ri, DL, MVT::i32, SDValue(ShlN, 0), Imm);
+
+      return DAG.getNode(ISD::TRUNCATE, DL, MVT::i16, SDValue(SraN, 0));
+    }
+
+    if (DstBits == 32) {
+      SDValue Z = emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i32, Src, SrcBits, true);
+      unsigned ShAmt = 32 - SrcBits;
+      SDValue Imm = DAG.getTargetConstant(ShAmt, DL, MVT::i32);
+
+      SDNode *ShlN = DAG.getMachineNode(SPEX::PSEUDO_SHL32ri, DL, MVT::i32, Z, Imm);
+      SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA32ri, DL, MVT::i32, SDValue(ShlN, 0), Imm);
+      return SDValue(SraN, 0);
+    }
+
+    // DstBits == 64
+    SDValue Z = emitRXMoveWithOptionalClearValue(DAG, DL, MVT::i64, Src, SrcBits, true);
+    unsigned ShAmt = 64 - SrcBits;
+    SDValue Imm = DAG.getTargetConstant(ShAmt, DL, MVT::i32);
+
+    SDNode *ShlN = DAG.getMachineNode(SPEX::PSEUDO_SHL64ri, DL, MVT::i64, Z, Imm);
+    SDNode *SraN = DAG.getMachineNode(SPEX::PSEUDO_SRA64ri, DL, MVT::i64, SDValue(ShlN, 0), Imm);
+    return SDValue(SraN, 0);
   }
 
   case ISD::GlobalAddress: {
@@ -973,5 +1013,5 @@ SDValue SPEXTargetLowering::lowerCallResult(
 
 EVT SPEXTargetLowering::getSetCCResultType(const DataLayout &DL,
                                            LLVMContext &Context, EVT VT) const {
-  return MVT::i1;
+  return MVT::i8;
 }

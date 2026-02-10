@@ -35,6 +35,10 @@ void SPEXInstPrinter::printInst(const MCInst *MI, uint64_t Address,
 
 void SPEXInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
                                    raw_ostream &O) {
+  if (OpNo >= MI->getNumOperands()){
+    O << "<illegal>";
+    return;
+  }
   const MCOperand &Op = MI->getOperand(OpNo);
   if (Op.isReg()) {
     O << getRegisterName(Op.getReg());

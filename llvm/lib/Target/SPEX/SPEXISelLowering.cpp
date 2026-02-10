@@ -411,56 +411,46 @@ const char *SPEXTargetLowering::getTargetNodeName(unsigned Opcode) const {
   }
 }
 
-static SDNode *emitRXMoveWithOptionalClear(SelectionDAG &DAG, const SDLoc &DL,
-                                           EVT DstVT, SDValue Src,
-                                           unsigned SrcBits,
-                                           bool ClearHighBitsWithZero) {
-  SDValue Glue;
-  if (ClearHighBitsWithZero) {
-    SDValue Imm0 = DAG.getTargetConstant(0, DL, MVT::i64);
-    SDNode *LiN = DAG.getMachineNode(SPEX::PSEUDO_LI64, DL, MVT::Glue, Imm0);
-    Glue = SDValue(LiN, 0);
-  }
+
+static SDValue emitRXMoveWithOptionalClearValue(
+    SelectionDAG &DAG,
+    const SDLoc &DL,
+    EVT DstVT,
+    SDValue Src,
+    unsigned SrcBits,
+    bool ClearHighBitsWithZero)
+{
+  // ---- choose mov opcode ----
   unsigned MovOpc = 0;
   switch (SrcBits) {
   case 1:
   case 8:
-    MovOpc = SPEX::MOVMOV8;
+    MovOpc = SPEX::MOVMOV8_R;
     break;
   case 16:
-    MovOpc = SPEX::MOVMOV16;
+    MovOpc = SPEX::MOVMOV16_R;
     break;
   case 32:
-    MovOpc = SPEX::MOVMOV32;
+    MovOpc = SPEX::MOVMOV32_R;
+    break;
+  case 64:
+    MovOpc = SPEX::MOVMOV64_R;
     break;
   default:
-    llvm_unreachable("Unsupported size of values to extend");
+    llvm_unreachable("bad extend size");
   }
-  SDNode *MovN = nullptr;
 
-  if (Glue.getNode()) {
-    MovN = DAG.getMachineNode(MovOpc, DL, MVT::Glue, Src, Glue);
-  } else {
-    MovN = DAG.getMachineNode(MovOpc, DL, MVT::Glue, Src);
-  }
-  Glue = SDValue(MovN, 0);
+  // ---- RX = mov ----
+  SDNode *MovN;
+  MovN = DAG.getMachineNode(MovOpc, DL, MVT::Glue, Src);
 
-  SDValue Chain = DAG.getEntryNode();
-  SDValue CFR = DAG.getCopyFromReg(Chain, DL, SPEX::RX, DstVT, Glue);
-
-  return CFR.getNode();
-}
-
-static SDValue emitRXMoveWithOptionalClearValue(SelectionDAG &DAG,
-                                                const SDLoc &DL, EVT DstVT,
-                                                SDValue Src, unsigned SrcBits,
-                                                bool ClearHighBitsWithZero) {
-  SDNode *MovN = emitRXMoveWithOptionalClear(DAG, DL, DstVT, Src, SrcBits,
-                                             ClearHighBitsWithZero);
   SDValue Glue(MovN, 0);
 
+  // ---- read RX value ----
   SDValue Chain = DAG.getEntryNode();
-  SDValue Val = DAG.getCopyFromReg(Chain, DL, SPEX::RX, DstVT, Glue);
+  SDValue Val =
+      DAG.getCopyFromReg(Chain, DL, SPEX::RX, DstVT, Glue);
+
   return Val;
 }
 

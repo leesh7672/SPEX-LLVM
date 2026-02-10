@@ -122,6 +122,19 @@ bool SPEXDAGToDAGISel::SelectAddrRR(SDValue Addr, SDValue &Base,
   return false;
 }
 
+static unsigned pickMovR(unsigned Bits){
+  switch (Bits) {
+    case 8:
+      return SPEX::MOVMOV8_R;
+    case 16:
+      return SPEX::MOVMOV16_R;
+    case 32:
+      return SPEX::MOVMOV32_R;
+    case 64:
+      return SPEX::MOVMOV64_R;
+  }
+}
+
 static unsigned pickCmpR(unsigned Bits) {
   switch (Bits) {
   case 8:

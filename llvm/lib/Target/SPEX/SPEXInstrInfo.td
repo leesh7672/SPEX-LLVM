@@ -818,6 +818,31 @@ def PSEUDO_ST16rr  : SPEXPseudoInst<(outs),
 def PSEUDO_ST8rr   : SPEXPseudoInst<(outs),
                                       (ins GPR:$val, GPR:$base, GPR:$idx)>;
 
+//------------------------------------------------------------------------------
+// Pseudo: SETCC / SELECT / SELECT_CC (I8/I16/I32/I64 variants)
+//  - Expand in EmitInstrWithCustomInserter: CMP{W} + BCC_*_I64 + CFG + PHI
+//------------------------------------------------------------------------------
+
+let usesCustomInserter = 1 in {
+  // dst = (lhs CC rhs) ? 1 : 0
+  def PSEUDO_SETCC_I8  : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs, i32imm:$cc)>;
+  def PSEUDO_SETCC_I16 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs, i32imm:$cc)>;
+  def PSEUDO_SETCC_I32 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs, i32imm:$cc)>;
+  def PSEUDO_SETCC_I64 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs, i32imm:$cc)>;
+
+  // dst = cond ? tval : fval
+  def PSEUDO_SELECT_I8  : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$cond, GPR:$tval, GPR:$fval)>;
+  def PSEUDO_SELECT_I16 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$cond, GPR:$tval, GPR:$fval)>;
+  def PSEUDO_SELECT_I32 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$cond, GPR:$tval, GPR:$fval)>;
+  def PSEUDO_SELECT_I64 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$cond, GPR:$tval, GPR:$fval)>;
+
+  // dst = (lhs CC rhs) ? tval : fval
+  def PSEUDO_SELECT_CC_I8  : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs, GPR:$tval, GPR:$fval, i32imm:$cc)>;
+  def PSEUDO_SELECT_CC_I16 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs, GPR:$tval, GPR:$fval, i32imm:$cc)>;
+  def PSEUDO_SELECT_CC_I32 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs, GPR:$tval, GPR:$fval, i32imm:$cc)>;
+  def PSEUDO_SELECT_CC_I64 : SPEXPseudoInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs, GPR:$tval, GPR:$fval, i32imm:$cc)>;
+}
+
 def PSEUDO_NOT32r : SPEXPseudoInst<(outs GPR:$dst),
   (ins  GPR:$src)> {
   let Constraints = "$dst = $src";
